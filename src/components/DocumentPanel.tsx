@@ -4,8 +4,10 @@ import type { ResearchDocument } from "../types";
 type DocumentPanelProps = {
   document: ResearchDocument;
   discovered: boolean;
+  bookmarked: boolean;
   focusMode: boolean;
   onClose: () => void;
+  onToggleBookmark: (document: ResearchDocument) => void;
   onToggleFocusMode: () => void;
   relatedDocuments?: ResearchDocument[];
   onInspectRelated?: (document: ResearchDocument) => void;
@@ -25,8 +27,10 @@ function isValidUrl(url: string) {
 export function DocumentPanel({
   document,
   discovered,
+  bookmarked,
   focusMode,
   onClose,
+  onToggleBookmark,
   onToggleFocusMode,
   relatedDocuments = [],
   onInspectRelated
@@ -67,6 +71,14 @@ export function DocumentPanel({
           >
             {focusMode ? "Exit focus" : "Focus mode"}
           </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onToggleBookmark(document)}
+            aria-pressed={bookmarked}
+          >
+            {bookmarked ? "Bookmarked" : "Bookmark"}
+          </button>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close document panel">
             X
           </button>
@@ -77,6 +89,7 @@ export function DocumentPanel({
         <span>{document.category}</span>
         <span>{document.type}</span>
         <span>{discovered ? "Discovered" : "New"}</span>
+        {bookmarked ? <span>Saved</span> : null}
       </div>
 
       <p className="document-panel__summary">{document.summary}</p>

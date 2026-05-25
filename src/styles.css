@@ -290,7 +290,8 @@ button {
 }
 
 .view-toggle button.is-active,
-.category-filter button.is-active {
+.category-filter button.is-active,
+.list-card__actions button.is-saved {
   color: #fffaf0;
   border-color: #17373a;
   background: #17373a;
