@@ -107,6 +107,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<ResearchCategory | "All">("All");
   const [player, setPlayer] = useState<PlayerPosition>(STARTING_POSITION);
   const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
+  const [focusMode, setFocusMode] = useState(false);
   const [discoveredIds, setDiscoveredIds] = useState<Set<string>>(() => loadDiscoveredIds());
   const [recentViews, setRecentViews] = useState<RecentView[]>(() => loadRecentViews());
   const [checkIn, setCheckIn] = useState<string>(() => loadCheckIn());
@@ -334,6 +335,11 @@ export default function App() {
     touchVectorRef.current = { x: 0, y: 0 };
   };
 
+  const closeDocument = () => {
+    setSelectedDocument(null);
+    setFocusMode(false);
+  };
+
   const saveCheckIn = (text: string) => {
     setCheckIn(text);
     try {
@@ -415,11 +421,14 @@ export default function App() {
     );
   });
 
+  const isFocusActive = focusMode && selectedDocument !== null;
+
   return (
     <main className="app-shell">
-      <div className="app-layout">
-        <div className="side-column">
-          <AtlasSidebar
+      {!isFocusActive && (
+        <div className="app-layout">
+          <div className="side-column">
+            <AtlasSidebar
             discoveredCount={discoveredIds.size}
             totalCount={researchManifest.length}
             regionInfo={regionInfo}
@@ -467,6 +476,7 @@ export default function App() {
           )}
         </div>
       </div>
+      )}
 
       {viewMode === "map" && (
         <div className="touch-controls" aria-label="Touch movement controls">
@@ -525,6 +535,8 @@ export default function App() {
         <DocumentPanel
           document={selectedDocument}
           discovered={discoveredIds.has(selectedDocument.id)}
+          focusMode={focusMode}
+          onToggleFocusMode={() => setFocusMode((current) => !current)}
           onClose={() => setSelectedDocument(null)}
           relatedDocuments={relatedDocuments}
           onInspectRelated={inspectDocument}

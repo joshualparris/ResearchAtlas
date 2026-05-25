@@ -4,7 +4,9 @@ import type { ResearchDocument } from "../types";
 type DocumentPanelProps = {
   document: ResearchDocument;
   discovered: boolean;
+  focusMode: boolean;
   onClose: () => void;
+  onToggleFocusMode: () => void;
   relatedDocuments?: ResearchDocument[];
   onInspectRelated?: (document: ResearchDocument) => void;
 };
@@ -23,7 +25,9 @@ function isValidUrl(url: string) {
 export function DocumentPanel({
   document,
   discovered,
+  focusMode,
   onClose,
+  onToggleFocusMode,
   relatedDocuments = [],
   onInspectRelated
 }: DocumentPanelProps) {
@@ -54,9 +58,19 @@ export function DocumentPanel({
           <p className="eyebrow">{document.region}</p>
           <h2>{document.title}</h2>
         </div>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="Close document panel">
-          X
-        </button>
+        <div className="document-panel__header-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={onToggleFocusMode}
+            aria-pressed={focusMode}
+          >
+            {focusMode ? "Exit focus" : "Focus mode"}
+          </button>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="Close document panel">
+            X
+          </button>
+        </div>
       </div>
 
       <div className="document-panel__meta">
