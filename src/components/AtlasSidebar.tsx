@@ -30,7 +30,6 @@ type AtlasSidebarProps = {
   todayTarget: string;
   regionInfo: RegionInfo[];
   currentRegion: string;
-  onJumpToRegion: (region: string) => void;
   onResetProgress: () => void;
   checkIn: string;
   onCheckInChange: (value: string) => void;
@@ -38,6 +37,7 @@ type AtlasSidebarProps = {
   recentViews: RecentViewInfo[];
   reviewDue: ReviewDueInfo[];
   bookmarks: BookmarkInfo[];
+  onInspectBookmark: (documentId: string) => void;
 };
 
 export function AtlasSidebar({
@@ -47,14 +47,14 @@ export function AtlasSidebar({
   todayTarget,
   regionInfo,
   currentRegion,
-  onJumpToRegion,
   onResetProgress,
   checkIn,
   onCheckInChange,
   onCheckInSave,
   recentViews,
   reviewDue,
-  bookmarks
+  bookmarks,
+  onInspectBookmark
 }: AtlasSidebarProps) {
   return (
     <aside className="atlas-sidebar" aria-label="Research Atlas status">
@@ -112,7 +112,11 @@ export function AtlasSidebar({
               <p>Your bookmarked research shelf.</p>
               <ul>
                 {bookmarks.slice(0, 5).map((item) => (
-                  <li key={item.id}>{item.title}</li>
+                  <li key={item.id}>
+                    <button type="button" onClick={() => onInspectBookmark(item.id)}>
+                      {item.title}
+                    </button>
+                  </li>
                 ))}
               </ul>
             </div>

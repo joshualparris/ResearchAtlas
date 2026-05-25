@@ -14,6 +14,7 @@ Research Atlas is a public, game-like library for deep research PDFs and Google 
 - Search, category filters, region legend, map view, and list view
 - Curated research trails with per-trail discovery progress
 - Region quick travel from the atlas legend
+- Guided learning objectives, field-note prompts, and auto-saved personal insights
 - Recent view history and review suggestions for rediscovery
 - Daily self-check-in to support mindful research habits
 - Public static manifest in `src/data/researchManifest.ts`

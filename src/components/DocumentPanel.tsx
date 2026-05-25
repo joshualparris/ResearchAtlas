@@ -15,6 +15,16 @@ type DocumentPanelProps = {
 
 const NOTE_STORAGE_PREFIX = "research-atlas.document-note.v1:";
 
+const fieldNotePrompts: Record<ResearchDocument["category"], string> = {
+  Health: "What small habit, metric, or body signal is worth testing this week?",
+  Mind: "What pattern does this explain, and what response would be kinder or clearer?",
+  Family: "What conversation, repair, or home rhythm could this research strengthen?",
+  Faith: "What conviction or practice should shape the next faithful step?",
+  Tech: "What tool, workflow, or build idea could become a practical experiment?",
+  Life: "What connects this research to the bigger story of priorities, time, and energy?",
+  Archive: "What should be kept, revisited, or linked to a more active research trail?"
+};
+
 function isValidUrl(url: string) {
   try {
     new URL(url);
@@ -38,7 +48,10 @@ export function DocumentPanel({
   const [note, setNote] = useState("");
   const hasValidUrl = isValidUrl(document.url);
 
-  const learningObjective = document.summary.split(/(?<=[.!?])\s+/)[0] || document.summary;
+  const firstSentence = document.summary.split(/(?<=[.!?])\s+/)[0] || document.summary;
+  const learningObjective =
+    firstSentence.length > 150 ? `${firstSentence.slice(0, 147).trim()}...` : firstSentence;
+  const fieldNotePrompt = fieldNotePrompts[document.category];
 
   useEffect(() => {
     try {
@@ -102,10 +115,15 @@ export function DocumentPanel({
         ))}
       </div>
 
-      <div className="document-panel__goal" aria-label="Learning objective">
-        <strong>Learning objective</strong>
-        <p>{learningObjective}</p>
-        <p className="hint">Focus on what this research helps you understand next.</p>
+      <div className="document-panel__goal" aria-label="Guided study prompt">
+        <div>
+          <strong>Learning objective</strong>
+          <p>{learningObjective}</p>
+        </div>
+        <div>
+          <strong>Field note prompt</strong>
+          <p>{fieldNotePrompt}</p>
+        </div>
       </div>
 
       <div className="document-panel__note" aria-label="Document note">

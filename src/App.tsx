@@ -401,6 +401,16 @@ export default function App() {
     }
   };
 
+  const inspectDocumentById = useCallback(
+    (documentId: string) => {
+      const document = researchManifest.find((item) => item.id === documentId);
+      if (document) {
+        inspectDocument(document);
+      }
+    },
+    [inspectDocument]
+  );
+
   const relatedDocuments = useMemo(() => {
     if (!selectedDocument) return [];
 
@@ -544,6 +554,7 @@ export default function App() {
                 id: document.id,
                 title: document.title
               }))}
+              onInspectBookmark={inspectDocumentById}
             />
 
             <SearchPanel

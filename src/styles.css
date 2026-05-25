@@ -207,6 +207,18 @@ button {
   font-size: 0.78rem;
 }
 
+.suggestion-card button {
+  border: 0;
+  padding: 0;
+  color: #17373a;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+}
+
 .region-legend {
   display: grid;
   gap: 8px;
@@ -668,6 +680,50 @@ button {
   color: #37484c;
 }
 
+.document-panel__goal,
+.document-panel__note {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(30, 43, 45, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 250, 240, 0.62);
+}
+
+.document-panel__goal {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.document-panel__goal strong,
+.document-panel__note label {
+  color: #17373a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.document-panel__goal p {
+  margin: 5px 0 0;
+  color: #37484c;
+  line-height: 1.45;
+}
+
+.document-panel__note textarea {
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid rgba(30, 43, 45, 0.18);
+  border-radius: 7px;
+  padding: 10px;
+  color: #17373a;
+  background: #fffaf0;
+  font: inherit;
+}
+
+.document-panel__note textarea:focus {
+  outline: 2px solid rgba(142, 59, 47, 0.28);
+  outline-offset: 2px;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;
@@ -861,5 +917,9 @@ button {
     right: 10px;
     bottom: 10px;
     width: calc(100vw - 20px);
+  }
+
+  .document-panel__goal {
+    grid-template-columns: 1fr;
   }
 }

@@ -12,7 +12,10 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 - Changed the document open action to a safe external anchor with `target="_blank"` and `rel="noopener noreferrer"`, plus an invalid-link fallback.
 - Confirmed `npm run build` succeeds after the URL update.
 - Verified map inspect flow with the Playwright web-game client and confirmed the rendered Open Document link uses the expected Google Docs URL with safe link attributes.
+- Added and pushed focus mode, manifest import/validation tooling, bookmarks, curated research trails, and region quick travel as separate checkpoints.
+- Added guided learning objectives, field-note prompts, and styled auto-saved personal insight notes for document inspection.
 
 ## TODO
 
 - Keep public links current as Drive documents are added or reshared.
+- Next expansion idea: generate a small "journey recap" from discovered documents, bookmarks, and notes.
