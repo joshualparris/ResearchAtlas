@@ -14,6 +14,7 @@ declare global {
 }
 
 const DISCOVERED_STORAGE_KEY = "research-atlas.discovered.v1";
+const BOOKMARK_STORAGE_KEY = "research-atlas.bookmarks.v1";
 const RECENT_VIEWS_STORAGE_KEY = "research-atlas.recent-views.v1";
 const CHECKIN_STORAGE_KEY = "research-atlas.checkin.v1";
 const REVIEW_DUE_DAYS = 7;
@@ -41,8 +42,16 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function loadDiscoveredIds() {
+  return loadIdSet(DISCOVERED_STORAGE_KEY);
+}
+
+function loadBookmarkIds() {
+  return loadIdSet(BOOKMARK_STORAGE_KEY);
+}
+
+function loadIdSet(storageKey: string) {
   try {
-    const raw = window.localStorage.getItem(DISCOVERED_STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey);
     if (!raw) return new Set<string>();
     const parsed = JSON.parse(raw);
     return new Set<string>(Array.isArray(parsed) ? parsed : []);
@@ -109,6 +118,7 @@ export default function App() {
   const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [discoveredIds, setDiscoveredIds] = useState<Set<string>>(() => loadDiscoveredIds());
+  const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(() => loadBookmarkIds());
   const [recentViews, setRecentViews] = useState<RecentView[]>(() => loadRecentViews());
   const [checkIn, setCheckIn] = useState<string>(() => loadCheckIn());
 
@@ -162,6 +172,25 @@ export default function App() {
       setDiscoveredIds(new Set());
       setSelectedDocument(null);
     }
+  }, []);
+
+  const toggleBookmark = useCallback((document: ResearchDocument) => {
+    setBookmarkIds((current) => {
+      const next = new Set(current);
+      if (next.has(document.id)) {
+        next.delete(document.id);
+      } else {
+        next.add(document.id);
+      }
+
+      try {
+        window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch {
+        // ignore storage errors
+      }
+
+      return next;
+    });
   }, []);
 
   const inspectDocument = useCallback(
@@ -317,6 +346,7 @@ export default function App() {
         })),
         visibleDocumentCount: filteredDocuments.length,
         discoveredCount: discoveredIds.size,
+        bookmarkCount: bookmarkIds.size,
         totalCount: researchManifest.length,
         activeFilter: selectedCategory,
         query
@@ -325,7 +355,7 @@ export default function App() {
     return () => {
       delete window.render_game_to_text;
     };
-  }, [discoveredIds, filteredDocuments, nearestDocument, query, selectedCategory, selectedDocument, viewMode]);
+  }, [bookmarkIds, discoveredIds, filteredDocuments, nearestDocument, query, selectedCategory, selectedDocument, viewMode]);
 
   const setTouchVector = (x: number, y: number) => {
     touchVectorRef.current = { x, y };
@@ -375,6 +405,12 @@ export default function App() {
     return zone?.region ?? "Wilderness";
   }, [player]);
 
+  const progressPercent = Math.round((discoveredIds.size / researchManifest.length) * 100);
+
+  const nextUndiscovered = useMemo(() => {
+    return researchManifest.find((document) => !discoveredIds.has(document.id));
+  }, [discoveredIds]);
+
   const recentDocuments = useMemo(() => {
     return recentViews
       .map((view) => {
@@ -397,8 +433,23 @@ export default function App() {
       .slice(0, 3);
   }, [recentDocuments]);
 
+  const todayTarget = useMemo(() => {
+    if (reviewDueDocuments.length > 0) {
+      return `Review ${reviewDueDocuments[0].title} again.`;
+    }
+    if (nextUndiscovered) {
+      return `Discover ${nextUndiscovered.title} in ${nextUndiscovered.region}.`;
+    }
+    return "You have discovered all documents. Review or refine your notes.";
+  }, [nextUndiscovered, reviewDueDocuments]);
+
+  const bookmarkedDocuments = useMemo(() => {
+    return researchManifest.filter((document) => bookmarkIds.has(document.id));
+  }, [bookmarkIds]);
+
   const listDocuments = filteredDocuments.map((document) => {
     const discovered = discoveredIds.has(document.id);
+    const bookmarked = bookmarkIds.has(document.id);
     return (
       <article key={document.id} className={`list-card list-card--${document.category.toLowerCase()}`}>
         <div>
@@ -413,6 +464,13 @@ export default function App() {
         </div>
         <div className="list-card__actions">
           <span>{discovered ? "Discovered" : "Undiscovered"}</span>
+          <button
+            type="button"
+            className={bookmarked ? "is-saved" : ""}
+            onClick={() => toggleBookmark(document)}
+          >
+            {bookmarked ? "Saved" : "Save"}
+          </button>
           <button type="button" onClick={() => inspectDocument(document)}>
             Inspect
           </button>
@@ -429,53 +487,60 @@ export default function App() {
         <div className="app-layout">
           <div className="side-column">
             <AtlasSidebar
-            discoveredCount={discoveredIds.size}
-            totalCount={researchManifest.length}
-            regionInfo={regionInfo}
-            currentRegion={currentRegion}
-            onResetProgress={resetDiscovered}
-            checkIn={checkIn}
-            onCheckInChange={setCheckIn}
-            onCheckInSave={() => saveCheckIn(checkIn)}
-            recentViews={recentDocuments.map((document) => ({
-              id: document.id,
-              title: document.title,
-              viewedAt: document.viewedAt
-            }))}
-            reviewDue={reviewDueDocuments.map((document) => ({
-              id: document.id,
-              title: document.title,
-              daysAgo: document.daysAgo
-            }))}
-          />
-          <SearchPanel
-            query={query}
-            onQueryChange={setQuery}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            resultCount={filteredDocuments.length}
-            searchInputRef={searchInputRef}
-          />
-        </div>
-
-        <div className="content-column">
-          {viewMode === "map" ? (
-            <GameMap
-              documents={filteredDocuments}
-              player={player}
-              nearestDocumentId={nearestDocument?.id ?? null}
-              discoveredIds={discoveredIds}
-              onInspectDocument={inspectDocument}
+              discoveredCount={discoveredIds.size}
+              totalCount={researchManifest.length}
+              progressPercent={progressPercent}
+              todayTarget={todayTarget}
+              regionInfo={regionInfo}
+              currentRegion={currentRegion}
+              onResetProgress={resetDiscovered}
+              checkIn={checkIn}
+              onCheckInChange={setCheckIn}
+              onCheckInSave={() => saveCheckIn(checkIn)}
+              recentViews={recentDocuments.map((document) => ({
+                id: document.id,
+                title: document.title,
+                viewedAt: document.viewedAt
+              }))}
+              reviewDue={reviewDueDocuments.map((document) => ({
+                id: document.id,
+                title: document.title,
+                daysAgo: document.daysAgo
+              }))}
+              bookmarks={bookmarkedDocuments.map((document) => ({
+                id: document.id,
+                title: document.title
+              }))}
             />
-          ) : (
-            <section className="list-view" aria-label="Research document list">
-              {listDocuments.length > 0 ? listDocuments : <p className="empty-state">No documents match the current search.</p>}
-            </section>
-          )}
+
+            <SearchPanel
+              query={query}
+              onQueryChange={setQuery}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              resultCount={filteredDocuments.length}
+              searchInputRef={searchInputRef}
+            />
+          </div>
+
+          <div className="content-column">
+            {viewMode === "map" ? (
+              <GameMap
+                documents={filteredDocuments}
+                player={player}
+                nearestDocumentId={nearestDocument?.id ?? null}
+                discoveredIds={discoveredIds}
+                onInspectDocument={inspectDocument}
+              />
+            ) : (
+              <section className="list-view" aria-label="Research document list">
+                {listDocuments.length > 0 ? listDocuments : <p className="empty-state">No documents match the current search.</p>}
+              </section>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {!isFocusActive && viewMode === "map" && (
@@ -535,7 +600,9 @@ export default function App() {
         <DocumentPanel
           document={selectedDocument}
           discovered={discoveredIds.has(selectedDocument.id)}
+          bookmarked={bookmarkIds.has(selectedDocument.id)}
           focusMode={focusMode}
+          onToggleBookmark={toggleBookmark}
           onToggleFocusMode={() => setFocusMode((current) => !current)}
           onClose={closeDocument}
           relatedDocuments={relatedDocuments}

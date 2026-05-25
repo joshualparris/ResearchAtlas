@@ -18,9 +18,16 @@ type ReviewDueInfo = {
   daysAgo: number;
 };
 
+type BookmarkInfo = {
+  id: string;
+  title: string;
+};
+
 type AtlasSidebarProps = {
   discoveredCount: number;
   totalCount: number;
+  progressPercent: number;
+  todayTarget: string;
   regionInfo: RegionInfo[];
   currentRegion: string;
   onResetProgress: () => void;
@@ -29,11 +36,14 @@ type AtlasSidebarProps = {
   onCheckInSave: () => void;
   recentViews: RecentViewInfo[];
   reviewDue: ReviewDueInfo[];
+  bookmarks: BookmarkInfo[];
 };
 
 export function AtlasSidebar({
   discoveredCount,
   totalCount,
+  progressPercent,
+  todayTarget,
   regionInfo,
   currentRegion,
   onResetProgress,
@@ -41,10 +51,9 @@ export function AtlasSidebar({
   onCheckInChange,
   onCheckInSave,
   recentViews,
-  reviewDue
+  reviewDue,
+  bookmarks
 }: AtlasSidebarProps) {
-  const progressPercent = totalCount > 0 ? Math.round((discoveredCount / totalCount) * 100) : 0;
-
   return (
     <aside className="atlas-sidebar" aria-label="Research Atlas status">
       <div className="atlas-sidebar__title">
@@ -70,6 +79,15 @@ export function AtlasSidebar({
         </div>
       </div>
 
+      <div className="sidebar-target" aria-label="Today's research target">
+        <strong>Today's target</strong>
+        <p>{todayTarget}</p>
+        <div className="progress-badge">
+          <span>{progressPercent}%</span>
+          <small>completed</small>
+        </div>
+      </div>
+
       <div className="sidebar-checkin" aria-label="Daily check-in">
         <strong>Daily Check-in</strong>
         <p>How are you feeling physically, mentally, spiritually today?</p>
@@ -84,8 +102,20 @@ export function AtlasSidebar({
         </button>
       </div>
 
-      {(reviewDue.length > 0 || recentViews.length > 0) && (
+      {(bookmarks.length > 0 || reviewDue.length > 0 || recentViews.length > 0) && (
         <div className="sidebar-suggestions" aria-label="Recent research suggestions">
+          {bookmarks.length > 0 && (
+            <div className="suggestion-card suggestion-card--bookmarks">
+              <strong>Saved for later</strong>
+              <p>Your bookmarked research shelf.</p>
+              <ul>
+                {bookmarks.slice(0, 5).map((item) => (
+                  <li key={item.id}>{item.title}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {reviewDue.length > 0 && (
             <div className="suggestion-card suggestion-card--review-due">
               <strong>Ready to revisit</strong>
@@ -93,7 +123,7 @@ export function AtlasSidebar({
               <ul>
                 {reviewDue.map((item) => (
                   <li key={item.id}>
-                    {item.title} · {item.daysAgo} day{item.daysAgo === 1 ? "" : "s"} ago
+                    {item.title} - {item.daysAgo} day{item.daysAgo === 1 ? "" : "s"} ago
                   </li>
                 ))}
               </ul>
