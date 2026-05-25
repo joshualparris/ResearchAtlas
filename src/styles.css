@@ -201,7 +201,9 @@ button {
 }
 
 .sidebar-checkin,
-.sidebar-suggestions {
+.sidebar-suggestions,
+.sidebar-quest,
+.sidebar-gems-review {
   display: grid;
   gap: 8px;
   margin-top: 12px;
@@ -211,16 +213,91 @@ button {
 }
 
 .sidebar-checkin strong,
-.suggestion-card strong {
+.suggestion-card strong,
+.sidebar-quest strong,
+.sidebar-gems-review strong {
   color: var(--color-secondary);
   font-size: 0.9rem;
 }
 
 .sidebar-checkin p,
-.suggestion-card p {
+.suggestion-card p,
+.sidebar-quest p,
+.sidebar-gems-review p {
   margin: 0;
   color: var(--color-text-muted);
   font-size: 0.78rem;
+}
+
+.sidebar-quest button {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.gems-review-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.gem-review-card {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+}
+
+.gem-type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  background: var(--color-card-bg);
+  color: var(--color-secondary);
+}
+
+.gem-type-badge--insight { border-left: 3px solid #2b7772; }
+.gem-type-badge--question { border-left: 3px solid #b75d41; }
+.gem-type-badge--quotation { border-left: 3px solid #6f5ea8; }
+
+.gem-review-content {
+  margin: 0 0 8px !important;
+  color: var(--color-text) !important;
+  font-size: 0.85rem !important;
+  line-height: 1.4;
+}
+
+.gem-review-source {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.gem-rating-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.gem-rating-buttons button {
+  padding: 4px 2px;
+  font-size: 0.65rem;
+  min-height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-input-bg);
+  color: var(--color-secondary);
+  font-weight: 700;
+}
+
+.gem-rating-buttons button:hover {
+  background: var(--color-secondary);
+  color: var(--color-input-bg);
 }
 
 .sidebar-checkin textarea {
@@ -671,14 +748,40 @@ button {
 .app-shell--focus {
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: 40px 18px;
+  background: var(--color-bg);
 }
 
 .app-shell--focus .document-panel {
   position: static;
-  width: min(760px, calc(100vw - 36px));
-  max-height: calc(100vh - 36px);
-  overflow: auto;
+  width: min(800px, 100%);
+  max-height: none;
+  overflow: visible;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.app-shell--focus .document-panel__header {
+  margin-bottom: 30px;
+}
+
+.app-shell--focus .document-panel h2 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.app-shell--focus .document-panel__content {
+  display: grid;
+  gap: 24px;
+}
+
+.app-shell--focus .document-panel__summary {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  margin-bottom: 20px;
 }
 
 .document-panel__header {
@@ -743,10 +846,14 @@ button {
 
 .document-panel__summary {
   color: var(--color-text-muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
 }
 
 .document-panel__goal,
-.document-panel__note {
+.document-panel__reflective,
+.document-panel__note,
+.document-panel__gems {
   display: grid;
   gap: 8px;
   border: 1px solid var(--color-border);
@@ -760,17 +867,45 @@ button {
 }
 
 .document-panel__goal strong,
-.document-panel__note label {
+.document-panel__reflective strong,
+.document-panel__note label,
+.document-panel__gems strong {
   color: var(--color-secondary);
   font-size: 0.76rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
-.document-panel__goal p {
+.document-panel__goal p,
+.document-panel__reflective p {
   margin: 5px 0 0;
   color: var(--color-text-muted);
   line-height: 1.45;
+}
+
+.gem-input-group {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.gem-input-group select {
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  color: var(--color-text);
+  background: var(--color-input-bg);
+  font-weight: 700;
+}
+
+.gem-input-group textarea {
+  min-height: 60px;
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  padding: 10px;
+  color: var(--color-text);
+  background: var(--color-input-bg);
 }
 
 .document-panel__note textarea {

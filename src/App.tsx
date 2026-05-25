@@ -5,7 +5,7 @@ import { GameMap, WORLD_HEIGHT, WORLD_WIDTH, regionZones } from "./components/Ga
 import { SearchPanel } from "./components/SearchPanel";
 import { researchManifest } from "./data/researchManifest";
 import { researchTrails } from "./data/researchTrails";
-import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode } from "./types";
+import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode, ResearchGem, GemRating } from "./types";
 
 declare global {
   interface Window {
@@ -19,6 +19,7 @@ const BOOKMARK_STORAGE_KEY = "research-atlas.bookmarks.v1";
 const RECENT_VIEWS_STORAGE_KEY = "research-atlas.recent-views.v1";
 const CHECKIN_STORAGE_KEY = "research-atlas.checkin.v1";
 const THEME_STORAGE_KEY = "research-atlas.theme.v1";
+const GEMS_STORAGE_KEY = "research-atlas.gems.v1";
 const REVIEW_DUE_DAYS = 7;
 const PLAYER_SPEED = 265;
 const INSPECT_DISTANCE = 105;
@@ -36,6 +37,44 @@ function loadThemeMode() {
   } catch {
     return "light" as ThemeMode;
   }
+}
+
+function loadGems() {
+  try {
+    const raw = window.localStorage.getItem(GEMS_STORAGE_KEY);
+    if (!raw) return [] as ResearchGem[];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as ResearchGem[]) : [];
+  } catch {
+    return [] as ResearchGem[];
+  }
+}
+
+function calculateNextReview(rating: GemRating, currentInterval: number, currentEase: number) {
+  let interval = 1;
+  let ease = currentEase;
+
+  if (rating === "forgot") {
+    interval = 1;
+    ease = Math.max(1.3, ease - 0.2);
+  } else if (rating === "hard") {
+    interval = Math.max(1, Math.floor(currentInterval * 1.2));
+    ease = Math.max(1.3, ease - 0.15);
+  } else if (rating === "good") {
+    interval = Math.ceil(currentInterval * ease);
+  } else if (rating === "easy") {
+    interval = Math.ceil(currentInterval * ease * 1.3);
+    ease = Math.min(2.5, ease + 0.15);
+  }
+
+  const nextReviewAt = new Date();
+  nextReviewAt.setDate(nextReviewAt.getDate() + interval);
+
+  return {
+    nextReviewAt: nextReviewAt.toISOString(),
+    interval,
+    ease
+  };
 }
 
 type RecentView = {
@@ -139,6 +178,7 @@ export default function App() {
   const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(() => loadBookmarkIds());
   const [recentViews, setRecentViews] = useState<RecentView[]>(() => loadRecentViews());
   const [checkIn, setCheckIn] = useState<string>(() => loadCheckIn());
+  const [gems, setGems] = useState<ResearchGem[]>(() => loadGems());
 
   const playerRef = useRef(player);
   const keysRef = useRef(new Set<string>());
@@ -430,6 +470,46 @@ export default function App() {
     }
   };
 
+  const addGem = useCallback((gemData: Omit<ResearchGem, "id" | "createdAt" | "nextReviewAt" | "interval" | "ease">) => {
+    const nextReviewAt = new Date();
+    nextReviewAt.setDate(nextReviewAt.getDate() + 1);
+
+    const newGem: ResearchGem = {
+      ...gemData,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      nextReviewAt: nextReviewAt.toISOString(),
+      interval: 1,
+      ease: 2.5
+    };
+
+    setGems((current) => {
+      const next = [...current, newGem];
+      try {
+        window.localStorage.setItem(GEMS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  }, []);
+
+  const rateGem = useCallback((gemId: string, rating: GemRating) => {
+    setGems((current) => {
+      const next = current.map((gem) => {
+        if (gem.id !== gemId) return gem;
+        const updates = calculateNextReview(rating, gem.interval, gem.ease);
+        return { ...gem, ...updates };
+      });
+      try {
+        window.localStorage.setItem(GEMS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  }, []);
+
   const inspectDocumentById = useCallback(
     (documentId: string) => {
       const document = researchManifest.find((item) => item.id === documentId);
@@ -514,6 +594,31 @@ export default function App() {
     }));
   }, [discoveredIds]);
 
+  const reviewDueGems = useMemo(() => {
+    const now = new Date();
+    return gems
+      .filter((gem) => new Date(gem.nextReviewAt) <= now)
+      .map((gem) => {
+        const doc = researchManifest.find((d) => d.id === gem.documentId);
+        return { ...gem, documentTitle: doc?.title ?? "Unknown Document" };
+      });
+  }, [gems]);
+
+  const rediscoveryQuest = useMemo(() => {
+    const discoveredDocs = researchManifest.filter((doc) => discoveredIds.has(doc.id));
+    if (discoveredDocs.length === 0) return null;
+
+    const thirtyDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * 30;
+    const candidates = discoveredDocs.filter((doc) => {
+      const recentView = recentViews.find((v) => v.id === doc.id);
+      return !recentView || new Date(recentView.viewedAt).getTime() < thirtyDaysAgo;
+    });
+
+    if (candidates.length === 0) return null;
+    const index = Math.floor(Math.random() * candidates.length);
+    return candidates[index];
+  }, [discoveredIds, recentViews]);
+
   const bookmarkedDocuments = useMemo(() => {
     return researchManifest.filter((document) => bookmarkIds.has(document.id));
   }, [bookmarkIds]);
@@ -586,6 +691,10 @@ export default function App() {
                 title: document.title
               }))}
               onInspectBookmark={inspectDocumentById}
+              reviewDueGems={reviewDueGems}
+              onRateGem={rateGem}
+              rediscoveryQuest={rediscoveryQuest ? { id: rediscoveryQuest.id, title: rediscoveryQuest.title } : null}
+              onStartQuest={inspectDocumentById}
             />
 
             <SearchPanel
@@ -685,6 +794,7 @@ export default function App() {
           onClose={closeDocument}
           relatedDocuments={relatedDocuments}
           onInspectRelated={inspectDocument}
+          onAddGem={addGem}
         />
       )}
     </main>

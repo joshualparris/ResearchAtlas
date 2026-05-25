@@ -40,3 +40,16 @@ export type ResearchTrail = {
   description: string;
   documentIds: string[];
 };
+
+export type GemRating = "forgot" | "hard" | "good" | "easy";
+
+export type ResearchGem = {
+  id: string;
+  documentId: string;
+  content: string;
+  type: "insight" | "question" | "quotation";
+  createdAt: string;
+  nextReviewAt: string;
+  interval: number; // in days
+  ease: number;
+};

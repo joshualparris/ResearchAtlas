@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import type { ResearchDocument } from "../types";
+import { useEffect, useState, useMemo } from "react";
+import type { ResearchDocument, ResearchGem } from "../types";
 
 type DocumentPanelProps = {
   document: ResearchDocument;
@@ -11,6 +11,7 @@ type DocumentPanelProps = {
   onToggleFocusMode: () => void;
   relatedDocuments?: ResearchDocument[];
   onInspectRelated?: (document: ResearchDocument) => void;
+  onAddGem?: (gem: Omit<ResearchGem, "id" | "createdAt" | "nextReviewAt" | "interval" | "ease">) => void;
 };
 
 const NOTE_STORAGE_PREFIX = "research-atlas.document-note.v1:";
@@ -24,6 +25,13 @@ const fieldNotePrompts: Record<ResearchDocument["category"], string> = {
   Life: "What connects this research to the bigger story of priorities, time, and energy?",
   Archive: "What should be kept, revisited, or linked to a more active research trail?"
 };
+
+const reflectiveQuestions = [
+  "How might this research apply to your life or work this month?",
+  "What is the one thing you will do differently after reading this?",
+  "What surprised you most about these findings?",
+  "How does this connect to what you already know about this topic?"
+];
 
 function isValidUrl(url: string) {
   try {
@@ -43,15 +51,24 @@ export function DocumentPanel({
   onToggleBookmark,
   onToggleFocusMode,
   relatedDocuments = [],
-  onInspectRelated
+  onInspectRelated,
+  onAddGem
 }: DocumentPanelProps) {
   const [note, setNote] = useState("");
+  const [isReading, setIsReading] = useState(false);
+  const [gemContent, setGemContent] = useState("");
+  const [gemType, setGemType] = useState<ResearchGem["type"]>("insight");
   const hasValidUrl = isValidUrl(document.url);
 
   const firstSentence = document.summary.split(/(?<=[.!?])\s+/)[0] || document.summary;
   const learningObjective =
     firstSentence.length > 150 ? `${firstSentence.slice(0, 147).trim()}...` : firstSentence;
   const fieldNotePrompt = fieldNotePrompts[document.category];
+
+  const reflectiveQuestion = useMemo(() => {
+    const index = document.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % reflectiveQuestions.length;
+    return reflectiveQuestions[index];
+  }, [document.id]);
 
   useEffect(() => {
     try {
@@ -70,6 +87,35 @@ export function DocumentPanel({
     }
   }, [document.id, note]);
 
+  const toggleReadAloud = () => {
+    if (isReading) {
+      window.speechSynthesis.cancel();
+      setIsReading(false);
+    } else {
+      const utterance = new SpeechSynthesisUtterance(`${document.title}. ${document.summary}`);
+      utterance.onend = () => setIsReading(false);
+      utterance.onerror = () => setIsReading(false);
+      window.speechSynthesis.speak(utterance);
+      setIsReading(true);
+    }
+  };
+
+  const handleAddGem = () => {
+    if (!gemContent.trim() || !onAddGem) return;
+    onAddGem({
+      documentId: document.id,
+      content: gemContent.trim(),
+      type: gemType
+    });
+    setGemContent("");
+  };
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
   return (
     <section className="document-panel" aria-label="Research document details">
       <div className="document-panel__header">
@@ -78,6 +124,14 @@ export function DocumentPanel({
           <h2>{document.title}</h2>
         </div>
         <div className="document-panel__header-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={toggleReadAloud}
+            aria-label={isReading ? "Stop reading" : "Read aloud"}
+          >
+            {isReading ? "Stop" : "Listen"}
+          </button>
           <button
             className="secondary-button"
             type="button"
@@ -107,35 +161,72 @@ export function DocumentPanel({
         {bookmarked ? <span>Saved</span> : null}
       </div>
 
-      <p className="document-panel__summary">{document.summary}</p>
+      <div className="document-panel__content">
+        <p className="document-panel__summary">{document.summary}</p>
 
-      <div className="tag-list" aria-label="Document tags">
-        {document.tags.map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
-      </div>
-
-      <div className="document-panel__goal" aria-label="Guided study prompt">
-        <div>
-          <strong>Learning objective</strong>
-          <p>{learningObjective}</p>
+        <div className="tag-list" aria-label="Document tags">
+          {document.tags.map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
         </div>
-        <div>
-          <strong>Field note prompt</strong>
-          <p>{fieldNotePrompt}</p>
-        </div>
-      </div>
 
-      <div className="document-panel__note" aria-label="Document note">
-        <label htmlFor="document-note">Personal insight</label>
-        <textarea
-          id="document-note"
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Capture one key insight or action from this document."
-          rows={4}
-        />
-        <p className="hint">Notes are saved automatically.</p>
+        <div className="document-panel__goal" aria-label="Guided study prompt">
+          <div>
+            <strong>Learning objective</strong>
+            <p>{learningObjective}</p>
+          </div>
+          <div>
+            <strong>Field note prompt</strong>
+            <p>{fieldNotePrompt}</p>
+          </div>
+        </div>
+
+        <div className="document-panel__reflective" aria-label="Reflective integration question">
+          <strong>Reflection</strong>
+          <p>{reflectiveQuestion}</p>
+        </div>
+
+        <div className="document-panel__note" aria-label="Document note">
+          <label htmlFor="document-note">Personal insight</label>
+          <textarea
+            id="document-note"
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Capture one key insight or action from this document."
+            rows={4}
+          />
+          <p className="hint">Notes are saved automatically.</p>
+        </div>
+
+        <div className="document-panel__gems" aria-label="Capture Gems">
+          <strong>Capture Gems</strong>
+          <p className="hint">Externalise your memory: capture insights, questions, or quotes for review.</p>
+          <div className="gem-input-group">
+            <select
+              value={gemType}
+              onChange={(e) => setGemType(e.target.value as ResearchGem["type"])}
+              aria-label="Gem type"
+            >
+              <option value="insight">Insight</option>
+              <option value="question">Question</option>
+              <option value="quotation">Quotation</option>
+            </select>
+            <textarea
+              value={gemContent}
+              onChange={(e) => setGemContent(e.target.value)}
+              placeholder="What's worth remembering?"
+              rows={2}
+            />
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleAddGem}
+              disabled={!gemContent.trim()}
+            >
+              Add Gem
+            </button>
+          </div>
+        </div>
       </div>
 
       {relatedDocuments.length > 0 && onInspectRelated ? (

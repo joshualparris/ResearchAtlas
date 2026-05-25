@@ -1,4 +1,4 @@
-import type { ResearchCategory } from "../types";
+import type { ResearchCategory, ResearchGem, GemRating } from "../types";
 
 type RegionInfo = {
   category: ResearchCategory;
@@ -25,6 +25,8 @@ type BookmarkInfo = {
 
 type ThemeMode = "light" | "dark";
 
+type ReviewDueGem = ResearchGem & { documentTitle: string };
+
 type AtlasSidebarProps = {
   discoveredCount: number;
   totalCount: number;
@@ -43,6 +45,10 @@ type AtlasSidebarProps = {
   reviewDue: ReviewDueInfo[];
   bookmarks: BookmarkInfo[];
   onInspectBookmark: (documentId: string) => void;
+  reviewDueGems: ReviewDueGem[];
+  onRateGem: (gemId: string, rating: GemRating) => void;
+  rediscoveryQuest: { id: string; title: string } | null;
+  onStartQuest: (documentId: string) => void;
 };
 
 export function AtlasSidebar({
@@ -62,7 +68,11 @@ export function AtlasSidebar({
   recentViews,
   reviewDue,
   bookmarks,
-  onInspectBookmark
+  onInspectBookmark,
+  reviewDueGems,
+  onRateGem,
+  rediscoveryQuest,
+  onStartQuest
 }: AtlasSidebarProps) {
   return (
     <aside className="atlas-sidebar" aria-label="Research Atlas status">
@@ -104,6 +114,16 @@ export function AtlasSidebar({
         </div>
       </div>
 
+      {rediscoveryQuest && (
+        <div className="sidebar-quest" aria-label="Rediscovery Quest">
+          <strong>Rediscovery Quest</strong>
+          <p>Strengthen your memory. Revisit <em>{rediscoveryQuest.title}</em> today.</p>
+          <button type="button" className="secondary-button" onClick={() => onStartQuest(rediscoveryQuest.id)}>
+            Start Quest
+          </button>
+        </div>
+      )}
+
       <div className="sidebar-checkin" aria-label="Daily check-in">
         <strong>Daily Check-in</strong>
         <p>How are you feeling physically, mentally, spiritually today?</p>
@@ -117,6 +137,28 @@ export function AtlasSidebar({
           Save Check-in
         </button>
       </div>
+
+      {reviewDueGems.length > 0 && (
+        <div className="sidebar-gems-review" aria-label="Gems Spaced Repetition Review">
+          <strong>Review Gems</strong>
+          <p>Active recall strengthens memory.</p>
+          <div className="gems-review-list">
+            {reviewDueGems.slice(0, 3).map((gem) => (
+              <div key={gem.id} className="gem-review-card">
+                <span className={`gem-type-badge gem-type-badge--${gem.type}`}>{gem.type}</span>
+                <p className="gem-review-content">{gem.content}</p>
+                <small className="gem-review-source">From: {gem.documentTitle}</small>
+                <div className="gem-rating-buttons">
+                  <button type="button" onClick={() => onRateGem(gem.id, "forgot")}>Forgot</button>
+                  <button type="button" onClick={() => onRateGem(gem.id, "hard")}>Hard</button>
+                  <button type="button" onClick={() => onRateGem(gem.id, "good")}>Good</button>
+                  <button type="button" onClick={() => onRateGem(gem.id, "easy")}>Easy</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {(bookmarks.length > 0 || reviewDue.length > 0 || recentViews.length > 0) && (
         <div className="sidebar-suggestions" aria-label="Recent research suggestions">
