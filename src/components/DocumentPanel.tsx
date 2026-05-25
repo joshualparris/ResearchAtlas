@@ -5,9 +5,11 @@ type DocumentPanelProps = {
   document: ResearchDocument;
   discovered: boolean;
   bookmarked: boolean;
+  revisit: boolean;
   focusMode: boolean;
   onClose: () => void;
   onToggleBookmark: (document: ResearchDocument) => void;
+  onToggleRevisit: (document: ResearchDocument) => void;
   onToggleFocusMode: () => void;
   relatedDocuments?: ResearchDocument[];
   onInspectRelated?: (document: ResearchDocument) => void;
@@ -46,9 +48,11 @@ export function DocumentPanel({
   document,
   discovered,
   bookmarked,
+  revisit,
   focusMode,
   onClose,
   onToggleBookmark,
+  onToggleRevisit,
   onToggleFocusMode,
   relatedDocuments = [],
   onInspectRelated,
@@ -58,6 +62,7 @@ export function DocumentPanel({
   const [isReading, setIsReading] = useState(false);
   const [gemContent, setGemContent] = useState("");
   const [gemType, setGemType] = useState<ResearchGem["type"]>("insight");
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const hasValidUrl = isValidUrl(document.url);
 
   const firstSentence = document.summary.split(/(?<=[.!?])\s+/)[0] || document.summary;
@@ -110,11 +115,20 @@ export function DocumentPanel({
     setGemContent("");
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(document.url);
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 2000);
+  };
+
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
     };
   }, []);
+
+  const difficultyLabel = document.difficulty || "moderate";
+  const readingTime = document.readingTimeEstimate || "5-10 min";
 
   return (
     <section className="document-panel" aria-label="Research document details">
@@ -146,7 +160,15 @@ export function DocumentPanel({
             onClick={() => onToggleBookmark(document)}
             aria-pressed={bookmarked}
           >
-            {bookmarked ? "Bookmarked" : "Bookmark"}
+            {bookmarked ? "Favorited" : "Favorite"}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onToggleRevisit(document)}
+            aria-pressed={revisit}
+          >
+            {revisit ? "For Revisit" : "Mark Revisit"}
           </button>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close document panel">
             X
@@ -157,8 +179,14 @@ export function DocumentPanel({
       <div className="document-panel__meta">
         <span>{document.category}</span>
         <span>{document.type}</span>
-        <span>{discovered ? "Discovered" : "New"}</span>
-        {bookmarked ? <span>Saved</span> : null}
+        <span>{discovered ? "Read" : "New"}</span>
+        <span className={`difficulty-${difficultyLabel}`}>{difficultyLabel}</span>
+        <span>{readingTime}</span>
+        {bookmarked ? <span>Favorite</span> : null}
+        {revisit ? <span>Revisit</span> : null}
+        <button className="text-button" onClick={handleCopyLink}>
+          {copyFeedback ? "Copied!" : "Copy Link"}
+        </button>
       </div>
 
       <div className="document-panel__content">
@@ -180,6 +208,23 @@ export function DocumentPanel({
             <p>{fieldNotePrompt}</p>
           </div>
         </div>
+
+        {(document.memoryPrompt || document.actionPrompt) && (
+          <div className="document-panel__prompts">
+            {document.memoryPrompt && (
+              <div className="prompt-item">
+                <strong>Memory Prompt</strong>
+                <p>{document.memoryPrompt}</p>
+              </div>
+            )}
+            {document.actionPrompt && (
+              <div className="prompt-item">
+                <strong>Action Prompt</strong>
+                <p>{document.actionPrompt}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="document-panel__reflective" aria-label="Reflective integration question">
           <strong>Reflection</strong>

@@ -7,7 +7,11 @@ Research Atlas is a public, game-like library for deep research PDFs and Google 
 - **React, Vite, and TypeScript**: Modern, performant frontend stack.
 - **Light/Dark Mode**: High-contrast themes for accessibility and deep research.
 - **Game-like Exploration**: WASD and arrow-key movement through a top-down fantasy map.
+- **Advanced Navigation**: Zoom controls, Teleportation Gates (T), and a toggleable Minimap (M).
+- **Discovery Guidance**: Built-in compass to track nearest undiscovered documents.
+- **Memory Shrines**: Regional shrines for resurfacing old research and rediscovering insights.
 - **Gems & Spaced Repetition**: Capture insights/questions and review them using SM-2 logic.
+- **Daily Quests**: Simple daily tasks to keep research habits active and engaging.
 - **Read Aloud (TTS)**: Built-in text-to-speech for dual-channel learning reinforcement.
 - **Reflective Integration**: Guided learning objectives and reflective questions for each document.
 - **Rediscovery Quests**: Automated prompts to revisit older research and combat forgetting.

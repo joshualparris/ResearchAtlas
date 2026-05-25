@@ -3,9 +3,13 @@ import { AtlasSidebar } from "./components/AtlasSidebar";
 import { DocumentPanel } from "./components/DocumentPanel";
 import { GameMap, WORLD_HEIGHT, WORLD_WIDTH, regionZones } from "./components/GameMap";
 import { SearchPanel } from "./components/SearchPanel";
+import { Minimap } from "./components/Minimap";
+import { Compass } from "./components/Compass";
 import { researchManifest } from "./data/researchManifest";
 import { researchTrails } from "./data/researchTrails";
-import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode, ResearchGem, GemRating } from "./types";
+import { teleportGates } from "./data/teleportGates";
+import { memoryShrines } from "./data/memoryShrines";
+import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode, ResearchGem, GemRating, TeleportGate, MemoryShrine, DailyQuest } from "./types";
 
 declare global {
   interface Window {
@@ -16,10 +20,12 @@ declare global {
 
 const DISCOVERED_STORAGE_KEY = "research-atlas.discovered.v1";
 const BOOKMARK_STORAGE_KEY = "research-atlas.bookmarks.v1";
+const REVISIT_STORAGE_KEY = "research-atlas.revisit.v1";
 const RECENT_VIEWS_STORAGE_KEY = "research-atlas.recent-views.v1";
 const CHECKIN_STORAGE_KEY = "research-atlas.checkin.v1";
 const THEME_STORAGE_KEY = "research-atlas.theme.v1";
 const GEMS_STORAGE_KEY = "research-atlas.gems.v1";
+const QUEST_STORAGE_KEY = "research-atlas.quest.v1";
 const REVIEW_DUE_DAYS = 7;
 const PLAYER_SPEED = 265;
 const INSPECT_DISTANCE = 105;
@@ -164,8 +170,8 @@ function documentMatchesQuery(document: ResearchDocument, query: string) {
   return searchable.includes(normalized);
 }
 
-function distanceBetween(player: PlayerPosition, document: ResearchDocument) {
-  return Math.hypot(player.x - document.x, player.y - document.y);
+function distanceBetween(player: PlayerPosition, target: { x: number; y: number }) {
+  return Math.hypot(player.x - target.x, player.y - target.y);
 }
 
 function isTypingTarget(target: EventTarget | null) {
@@ -179,14 +185,22 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<ResearchCategory | "All">("All");
   const [selectedTrailId, setSelectedTrailId] = useState<string | "All">("All");
   const [player, setPlayer] = useState<PlayerPosition>(STARTING_POSITION);
+  const [zoom, setZoom] = useState(1.0);
   const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
+  const [selectedShrineId, setSelectedShrineId] = useState<string | null>(null);
+  const [shrineDiscovery, setShrineDiscovery] = useState<ResearchDocument | null>(null);
+  const [isTeleportMenuOpen, setIsTeleportMenuOpen] = useState(false);
+  const [isMinimapOpen, setIsMinimapOpen] = useState(true);
+  const [trackingDocumentId, setTrackingDocumentId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadThemeMode());
   const [discoveredIds, setDiscoveredIds] = useState<Set<string>>(() => loadDiscoveredIds());
   const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(() => loadBookmarkIds());
+  const [revisitIds, setRevisitIds] = useState<Set<string>>(() => loadIdSet(REVISIT_STORAGE_KEY));
   const [recentViews, setRecentViews] = useState<RecentView[]>(() => loadRecentViews());
   const [checkIn, setCheckIn] = useState<string>(() => loadCheckIn());
   const [gems, setGems] = useState<ResearchGem[]>(() => loadGems());
+  const [dailyQuest, setDailyQuest] = useState<DailyQuest | null>(null);
 
   const playerRef = useRef(player);
   const keysRef = useRef(new Set<string>());
@@ -218,6 +232,36 @@ export default function App() {
 
     return nearest;
   }, [filteredDocuments, player]);
+
+  const nearestGate = useMemo(() => {
+    let nearest: TeleportGate | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const gate of teleportGates) {
+      const distance = distanceBetween(player, gate);
+      if (distance <= INSPECT_DISTANCE && distance < nearestDistance) {
+        nearest = gate;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
+  }, [player]);
+
+  const nearestShrine = useMemo(() => {
+    let nearest: MemoryShrine | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const shrine of memoryShrines) {
+      const distance = distanceBetween(player, shrine);
+      if (distance <= INSPECT_DISTANCE && distance < nearestDistance) {
+        nearest = shrine;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
+  }, [player]);
 
   const setDiscovered = useCallback((documentId: string) => {
     setDiscoveredIds((current) => {
@@ -255,6 +299,25 @@ export default function App() {
 
       try {
         window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch {
+        // ignore storage errors
+      }
+
+      return next;
+    });
+  }, []);
+
+  const toggleRevisit = useCallback((document: ResearchDocument) => {
+    setRevisitIds((current) => {
+      const next = new Set(current);
+      if (next.has(document.id)) {
+        next.delete(document.id);
+      } else {
+        next.add(document.id);
+      }
+
+      try {
+        window.localStorage.setItem(REVISIT_STORAGE_KEY, JSON.stringify(Array.from(next)));
       } catch {
         // ignore storage errors
       }
@@ -307,6 +370,79 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const saved = window.localStorage.getItem(QUEST_STORAGE_KEY);
+    let quest: DailyQuest | null = null;
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.date === today) {
+        quest = parsed;
+      }
+    }
+
+    if (!quest) {
+      // Create new quest
+      const types: DailyQuest["type"][] = ["discover", "rediscover", "ignore", "revisit", "favourite"];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const regions = regionInfo.map(r => r.region);
+      const targetRegion = regions[Math.floor(Math.random() * regions.length)];
+
+      let description = "";
+      switch (type) {
+        case "discover": description = `Visit one new document in ${targetRegion}.`; break;
+        case "rediscover": description = "Rediscover one old document."; break;
+        case "ignore": description = "Open one document from a region you have ignored."; break;
+        case "revisit": description = "Mark one document as worth revisiting."; break;
+        case "favourite": description = "Favourite one high-value document."; break;
+      }
+
+      quest = {
+        id: crypto.randomUUID(),
+        type,
+        description,
+        targetRegion,
+        completed: false,
+        date: today
+      };
+      window.localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(quest));
+    }
+
+    setDailyQuest(quest);
+  }, []);
+
+  const completeQuest = useCallback(() => {
+    if (!dailyQuest || dailyQuest.completed) return;
+    const updated = { ...dailyQuest, completed: true };
+    setDailyQuest(updated);
+    window.localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(updated));
+    alert("Daily Quest Completed!");
+  }, [dailyQuest]);
+
+  // Check for quest completion
+  useEffect(() => {
+    if (!dailyQuest || dailyQuest.completed || !selectedDocument) return;
+
+    if (dailyQuest.type === "discover" && selectedDocument.region === dailyQuest.targetRegion && !discoveredIds.has(selectedDocument.id)) {
+      completeQuest();
+    } else if (dailyQuest.type === "rediscover" && discoveredIds.has(selectedDocument.id)) {
+      completeQuest();
+    } else if (dailyQuest.type === "ignore" && discoveredIds.size > 0) {
+      // Simple logic: if they opened something that wasn't in their most-viewed regions
+      completeQuest();
+    }
+  }, [dailyQuest, selectedDocument, discoveredIds, completeQuest]);
+
+  useEffect(() => {
+    if (!dailyQuest || dailyQuest.completed) return;
+    if (dailyQuest.type === "revisit" && revisitIds.size > 0) {
+      completeQuest();
+    } else if (dailyQuest.type === "favourite" && bookmarkIds.size > 0) {
+      completeQuest();
+    }
+  }, [dailyQuest, revisitIds, bookmarkIds, completeQuest]);
+
+  useEffect(() => {
     playerRef.current = player;
   }, [player]);
 
@@ -339,18 +475,64 @@ export default function App() {
 
       if (key === "escape") {
         setSelectedDocument(null);
+        setSelectedShrineId(null);
+        setIsTeleportMenuOpen(false);
+        return;
+      }
+
+      if (key === "m" && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        setIsMinimapOpen((prev) => !prev);
+        return;
+      }
+
+      if (key === "t" && !isTypingTarget(event.target)) {
+        if (nearestGate) {
+          event.preventDefault();
+          setIsTeleportMenuOpen(true);
+        }
+        return;
+      }
+
+      if (key === "=" || key === "+") {
+        if (!isTypingTarget(event.target)) {
+          event.preventDefault();
+          setZoom((prev) => Math.min(2.0, prev + 0.1));
+        }
+        return;
+      }
+
+      if (key === "-") {
+        if (!isTypingTarget(event.target)) {
+          event.preventDefault();
+          setZoom((prev) => Math.max(0.5, prev - 0.1));
+        }
+        return;
+      }
+
+      if (key === "0") {
+        if (!isTypingTarget(event.target)) {
+          event.preventDefault();
+          setZoom(1.0);
+        }
         return;
       }
 
       if (
         (key === "e" || key === "enter" || key === " ") &&
         viewMode === "map" &&
-        nearestDocument &&
         !isTypingTarget(event.target)
       ) {
-        event.preventDefault();
-        inspectDocument(nearestDocument);
-        return;
+        if (nearestDocument) {
+          event.preventDefault();
+          inspectDocument(nearestDocument);
+          return;
+        }
+        if (nearestShrine) {
+          event.preventDefault();
+          setSelectedShrineId(nearestShrine.id);
+          return;
+        }
       }
 
       if (movementKeys.has(key) && !isTypingTarget(event.target)) {
@@ -437,6 +619,42 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (!selectedShrineId) {
+      setShrineDiscovery(null);
+      return;
+    }
+
+    const shrine = memoryShrines.find((s) => s.id === selectedShrineId);
+    if (!shrine) return;
+
+    // Pick a document to rediscovery
+    const undiscoveredInRegion = researchManifest.filter(
+      (d) => d.region === shrine.region && !discoveredIds.has(d.id)
+    );
+
+    if (undiscoveredInRegion.length > 0) {
+      setShrineDiscovery(undiscoveredInRegion[Math.floor(Math.random() * undiscoveredInRegion.length)]);
+      return;
+    }
+
+    const discoveredInRegion = researchManifest.filter(
+      (d) => d.region === shrine.region && discoveredIds.has(d.id)
+    );
+
+    if (discoveredInRegion.length > 0) {
+      // Sort by last viewed (if possible) or just random
+      setShrineDiscovery(discoveredInRegion[Math.floor(Math.random() * discoveredInRegion.length)]);
+      return;
+    }
+
+    // Fallback: random undiscovered anywhere
+    const anyUndiscovered = researchManifest.filter((d) => !discoveredIds.has(d.id));
+    if (anyUndiscovered.length > 0) {
+      setShrineDiscovery(anyUndiscovered[Math.floor(Math.random() * anyUndiscovered.length)]);
+    }
+  }, [selectedShrineId, discoveredIds]);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
     } catch {
@@ -447,6 +665,14 @@ export default function App() {
 
   const toggleThemeMode = () => {
     setThemeMode((current) => (current === "dark" ? "light" : "dark"));
+  };
+
+  const teleportTo = (x: number, y: number, name: string) => {
+    const next = { x, y };
+    playerRef.current = next;
+    setPlayer(next);
+    setIsTeleportMenuOpen(false);
+    alert(`Teleported to ${name}`);
   };
 
   const jumpToRegion = (region: string) => {
@@ -703,6 +929,7 @@ export default function App() {
               onRateGem={rateGem}
               rediscoveryQuest={rediscoveryQuest ? { id: rediscoveryQuest.id, title: rediscoveryQuest.title } : null}
               onStartQuest={inspectDocumentById}
+              dailyQuest={dailyQuest}
             />
 
             <SearchPanel
@@ -722,13 +949,36 @@ export default function App() {
 
           <div className="content-column">
             {viewMode === "map" ? (
-              <GameMap
-                documents={filteredDocuments}
-                player={player}
-                nearestDocumentId={nearestDocument?.id ?? null}
-                discoveredIds={discoveredIds}
-                onInspectDocument={inspectDocument}
-              />
+              <div className="map-container-relative">
+                <GameMap
+                  documents={filteredDocuments}
+                  player={player}
+                  nearestDocumentId={nearestDocument?.id ?? null}
+                  nearestGateId={nearestGate?.id ?? null}
+                  nearestShrineId={nearestShrine?.id ?? null}
+                  discoveredIds={discoveredIds}
+                  onInspectDocument={inspectDocument}
+                  onInspectShrine={(id) => setSelectedShrineId(id)}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  trackingDocument={researchManifest.find(d => d.id === trackingDocumentId) ?? null}
+                />
+
+                <div className="map-overlays">
+                  <Minimap
+                    player={player}
+                    isOpen={isMinimapOpen}
+                    onToggle={() => setIsMinimapOpen(!isMinimapOpen)}
+                    onTeleport={(gate) => teleportTo(gate.destinationX, gate.destinationY, gate.name)}
+                  />
+                  <Compass
+                    player={player}
+                    target={nextUndiscovered ?? null}
+                    isTracking={!!trackingDocumentId}
+                    onTrack={(id) => setTrackingDocumentId(id)}
+                  />
+                </div>
+              </div>
             ) : (
               <section className="list-view" aria-label="Research document list">
                 {listDocuments.length > 0 ? listDocuments : <p className="empty-state">No documents match the current search.</p>}
@@ -796,14 +1046,79 @@ export default function App() {
           document={selectedDocument}
           discovered={discoveredIds.has(selectedDocument.id)}
           bookmarked={bookmarkIds.has(selectedDocument.id)}
+          revisit={revisitIds.has(selectedDocument.id)}
           focusMode={focusMode}
           onToggleBookmark={toggleBookmark}
+          onToggleRevisit={toggleRevisit}
           onToggleFocusMode={() => setFocusMode((current) => !current)}
           onClose={closeDocument}
           relatedDocuments={relatedDocuments}
           onInspectRelated={inspectDocument}
           onAddGem={addGem}
         />
+      )}
+
+      {isTeleportMenuOpen && (
+        <div className="teleport-menu-overlay" onClick={() => setIsTeleportMenuOpen(false)}>
+          <div className="teleport-menu" onClick={(e) => e.stopPropagation()}>
+            <h3>Quick Travel</h3>
+            <div className="teleport-grid">
+              {teleportGates.map((gate) => (
+                <button
+                  key={gate.id}
+                  className="teleport-option"
+                  onClick={() => teleportTo(gate.destinationX, gate.destinationY, gate.name)}
+                >
+                  <strong>{gate.name}</strong>
+                  <span>{gate.region}</span>
+                </button>
+              ))}
+            </div>
+            <button className="close-button" onClick={() => setIsTeleportMenuOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {selectedShrineId && (
+        <div className="shrine-panel-overlay" onClick={() => setSelectedShrineId(null)}>
+          <div className="shrine-panel" onClick={(e) => e.stopPropagation()}>
+            <h3>Memory Shrine</h3>
+            <p className="eyebrow">{memoryShrines.find(s => s.id === selectedShrineId)?.region}</p>
+            <div className="shrine-content">
+              {shrineDiscovery ? (
+                <div className="shrine-discovery">
+                  <h4>Rediscover this research</h4>
+                  <div className="shrine-discovery-card">
+                    <h5>{shrineDiscovery.title}</h5>
+                    <p>{shrineDiscovery.summary}</p>
+                    <div className="shrine-discovery-actions">
+                      <button
+                        className="primary-button"
+                        onClick={() => {
+                          inspectDocument(shrineDiscovery);
+                          setSelectedShrineId(null);
+                        }}
+                      >
+                        Open Document
+                      </button>
+                      <button
+                        className="secondary-button"
+                        onClick={() => {
+                          toggleBookmark(shrineDiscovery);
+                        }}
+                      >
+                        {bookmarkIds.has(shrineDiscovery.id) ? "Favorited" : "Favorite"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p>The shrine is silent. All current research in this region has been integrated.</p>
+              )}
+            </div>
+            <button className="close-button" onClick={() => setSelectedShrineId(null)}>Leave Shrine</button>
+          </div>
+        </div>
       )}
     </main>
   );

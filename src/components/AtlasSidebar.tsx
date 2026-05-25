@@ -1,4 +1,4 @@
-import type { ResearchCategory, ResearchGem, GemRating } from "../types";
+import type { ResearchCategory, ResearchGem, GemRating, DailyQuest } from "../types";
 
 type RegionInfo = {
   category: ResearchCategory;
@@ -49,6 +49,7 @@ type AtlasSidebarProps = {
   onRateGem: (gemId: string, rating: GemRating) => void;
   rediscoveryQuest: { id: string; title: string } | null;
   onStartQuest: (documentId: string) => void;
+  dailyQuest: DailyQuest | null;
 };
 
 export function AtlasSidebar({
@@ -72,7 +73,8 @@ export function AtlasSidebar({
   reviewDueGems,
   onRateGem,
   rediscoveryQuest,
-  onStartQuest
+  onStartQuest,
+  dailyQuest
 }: AtlasSidebarProps) {
   return (
     <aside className="atlas-sidebar" aria-label="Research Atlas status">
@@ -113,6 +115,14 @@ export function AtlasSidebar({
           <small>completed</small>
         </div>
       </div>
+
+      {dailyQuest && (
+        <div className={`sidebar-quest ${dailyQuest.completed ? "is-completed" : ""}`} aria-label="Daily Quest">
+          <strong>Daily Quest</strong>
+          <p>{dailyQuest.description}</p>
+          {dailyQuest.completed && <span className="quest-status">Completed!</span>}
+        </div>
+      )}
 
       {rediscoveryQuest && (
         <div className="sidebar-quest" aria-label="Rediscovery Quest">

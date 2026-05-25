@@ -27,6 +27,13 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 - Expanded the **Research Manifest** with a second wave of 40+ deep research documents across 8 new regions.
 - Enlarged the **World Map** bounds to 2200x2400 to accommodate the new research modules.
 - Updated the **Region Legend** and sidebar travel options to support the expanded atlas geography.
+- Implemented **Map Zoom Controls**: Supports buttons (+, -, reset, fit), mouse wheel, and keyboard shortcuts (+, -, 0).
+- Added **Teleportation Gates**: 16 glowing portals across major regions for instant quick travel (Hotkey: T).
+- Integrated **Minimap Overlay**: A collapsible world-view with real-time player and gate markers (Hotkey: M).
+- Added **Discovery Guidance (Compass)**: Tracks the nearest undiscovered document with distance and direction indicators.
+- Implemented **Memory Shrines**: One shrine per major region that resurfaces older or undiscovered research.
+- Upgraded **Document Panels**: Added Favourites, Revisit markers, Copy Link, and expanded metadata (Difficulty, Reading Time, Prompts).
+- Added **Daily Quest System**: Simple, persistent daily tasks to guide exploration and retention.
 
 ## TODO
 

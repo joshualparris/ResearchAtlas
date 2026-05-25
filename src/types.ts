@@ -25,6 +25,38 @@ export type ResearchDocument = {
   type: ResearchDocumentType;
   x: number;
   y: number;
+  readingTimeEstimate?: string;
+  difficulty?: "light" | "moderate" | "deep";
+  memoryPrompt?: string;
+  actionPrompt?: string;
+};
+
+export type TeleportGate = {
+  id: string;
+  name: string;
+  region: string;
+  x: number;
+  y: number;
+  destinationX: number;
+  destinationY: number;
+  description: string;
+};
+
+export type MemoryShrine = {
+  id: string;
+  region: string;
+  x: number;
+  y: number;
+  description: string;
+};
+
+export type DailyQuest = {
+  id: string;
+  type: "discover" | "rediscover" | "ignore" | "revisit" | "favourite";
+  description: string;
+  targetRegion?: string;
+  completed: boolean;
+  date: string;
 };
 
 export type PlayerPosition = {
