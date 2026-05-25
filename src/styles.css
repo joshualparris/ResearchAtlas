@@ -322,6 +322,46 @@ button {
   margin-top: 12px;
 }
 
+.trail-filter {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.trail-filter__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #17373a;
+}
+
+.trail-filter button {
+  border: 1px solid rgba(30, 43, 45, 0.18);
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: #17373a;
+  text-align: left;
+  background: #fffaf0;
+}
+
+.trail-filter button.is-active {
+  color: #fffaf0;
+  border-color: #17373a;
+  background: #17373a;
+}
+
+.trail-filter span,
+.trail-filter small {
+  display: block;
+}
+
+.trail-filter small {
+  margin-top: 2px;
+  color: inherit;
+  opacity: 0.78;
+  font-size: 0.72rem;
+}
+
 .search-panel__count {
   margin: 12px 0 0;
   color: #516064;

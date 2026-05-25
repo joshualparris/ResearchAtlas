@@ -34,3 +34,9 @@ export type PlayerPosition = {
 
 export type ViewMode = "map" | "list";
 
+export type ResearchTrail = {
+  id: string;
+  title: string;
+  description: string;
+  documentIds: string[];
+};

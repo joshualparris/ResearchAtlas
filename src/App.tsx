@@ -4,6 +4,7 @@ import { DocumentPanel } from "./components/DocumentPanel";
 import { GameMap, WORLD_HEIGHT, WORLD_WIDTH, regionZones } from "./components/GameMap";
 import { SearchPanel } from "./components/SearchPanel";
 import { researchManifest } from "./data/researchManifest";
+import { researchTrails } from "./data/researchTrails";
 import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode } from "./types";
 
 declare global {
@@ -114,6 +115,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ResearchCategory | "All">("All");
+  const [selectedTrailId, setSelectedTrailId] = useState<string | "All">("All");
   const [player, setPlayer] = useState<PlayerPosition>(STARTING_POSITION);
   const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
   const [focusMode, setFocusMode] = useState(false);
@@ -128,11 +130,15 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const filteredDocuments = useMemo(() => {
+    const selectedTrail = researchTrails.find((trail) => trail.id === selectedTrailId);
+    const trailDocumentIds = selectedTrail ? new Set(selectedTrail.documentIds) : null;
+
     return researchManifest.filter((document) => {
       const categoryMatches = selectedCategory === "All" || document.category === selectedCategory;
-      return categoryMatches && documentMatchesQuery(document, query);
+      const trailMatches = !trailDocumentIds || trailDocumentIds.has(document.id);
+      return categoryMatches && trailMatches && documentMatchesQuery(document, query);
     });
-  }, [query, selectedCategory]);
+  }, [query, selectedCategory, selectedTrailId]);
 
   const nearestDocument = useMemo(() => {
     let nearest: ResearchDocument | null = null;
@@ -349,13 +355,14 @@ export default function App() {
         bookmarkCount: bookmarkIds.size,
         totalCount: researchManifest.length,
         activeFilter: selectedCategory,
+        activeTrail: selectedTrailId,
         query
       });
 
     return () => {
       delete window.render_game_to_text;
     };
-  }, [bookmarkIds, discoveredIds, filteredDocuments, nearestDocument, query, selectedCategory, selectedDocument, viewMode]);
+  }, [bookmarkIds, discoveredIds, filteredDocuments, nearestDocument, query, selectedCategory, selectedDocument, selectedTrailId, viewMode]);
 
   const setTouchVector = (x: number, y: number) => {
     touchVectorRef.current = { x, y };
@@ -443,6 +450,16 @@ export default function App() {
     return "You have discovered all documents. Review or refine your notes.";
   }, [nextUndiscovered, reviewDueDocuments]);
 
+  const trailOptions = useMemo(() => {
+    return researchTrails.map((trail) => ({
+      id: trail.id,
+      title: trail.title,
+      description: trail.description,
+      total: trail.documentIds.length,
+      discovered: trail.documentIds.filter((id) => discoveredIds.has(id)).length
+    }));
+  }, [discoveredIds]);
+
   const bookmarkedDocuments = useMemo(() => {
     return researchManifest.filter((document) => bookmarkIds.has(document.id));
   }, [bookmarkIds]);
@@ -518,6 +535,9 @@ export default function App() {
               onQueryChange={setQuery}
               selectedCategory={selectedCategory}
               onCategoryChange={setSelectedCategory}
+              selectedTrailId={selectedTrailId}
+              onTrailChange={setSelectedTrailId}
+              trails={trailOptions}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               resultCount={filteredDocuments.length}

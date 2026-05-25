@@ -6,6 +6,15 @@ type SearchPanelProps = {
   onQueryChange: (query: string) => void;
   selectedCategory: ResearchCategory | "All";
   onCategoryChange: (category: ResearchCategory | "All") => void;
+  selectedTrailId: string | "All";
+  onTrailChange: (trailId: string | "All") => void;
+  trails: Array<{
+    id: string;
+    title: string;
+    description: string;
+    discovered: number;
+    total: number;
+  }>;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   resultCount: number;
@@ -17,6 +26,9 @@ export function SearchPanel({
   onQueryChange,
   selectedCategory,
   onCategoryChange,
+  selectedTrailId,
+  onTrailChange,
+  trails,
   viewMode,
   onViewModeChange,
   resultCount,
@@ -72,8 +84,33 @@ export function SearchPanel({
         ))}
       </div>
 
+      <div className="trail-filter" aria-label="Research trails">
+        <div className="trail-filter__header">
+          <strong>Research Trails</strong>
+          <button
+            type="button"
+            className={selectedTrailId === "All" ? "is-active" : ""}
+            onClick={() => onTrailChange("All")}
+          >
+            All
+          </button>
+        </div>
+        {trails.map((trail) => (
+          <button
+            key={trail.id}
+            type="button"
+            className={selectedTrailId === trail.id ? "is-active" : ""}
+            onClick={() => onTrailChange(trail.id)}
+          >
+            <span>{trail.title}</span>
+            <small>
+              {trail.discovered}/{trail.total} - {trail.description}
+            </small>
+          </button>
+        ))}
+      </div>
+
       <p className="search-panel__count">{resultCount} documents visible</p>
     </section>
   );
 }
-
