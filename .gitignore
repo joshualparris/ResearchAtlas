@@ -1,0 +1,16 @@
+node_modules
+dist
+output
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+*.local
+vite-output.log
+vite-error.log
+playtest-actions.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

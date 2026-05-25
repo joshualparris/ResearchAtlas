@@ -1,0 +1,401 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AtlasSidebar } from "./components/AtlasSidebar";
+import { DocumentPanel } from "./components/DocumentPanel";
+import { GameMap, WORLD_HEIGHT, WORLD_WIDTH } from "./components/GameMap";
+import { SearchPanel } from "./components/SearchPanel";
+import { researchManifest } from "./data/researchManifest";
+import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode } from "./types";
+
+declare global {
+  interface Window {
+    render_game_to_text?: () => string;
+    advanceTime?: (ms: number) => void;
+  }
+}
+
+const DISCOVERED_STORAGE_KEY = "research-atlas.discovered.v1";
+const PLAYER_SPEED = 265;
+const INSPECT_DISTANCE = 105;
+const STARTING_POSITION: PlayerPosition = { x: 900, y: 600 };
+
+const regionInfo: Array<{ category: ResearchCategory; region: string; description: string }> = [
+  { category: "Health", region: "Health Highlands", description: "Sleep, movement, body systems, and recovery." },
+  { category: "Mind", region: "Mind Forest", description: "Attention, emotion, reflection, and patterns." },
+  { category: "Family", region: "Family Grove", description: "Marriage, parenting, home life, and memory." },
+  { category: "Faith", region: "Faith Chapel", description: "Christian formation, vocation, prayer, and wisdom." },
+  { category: "Tech", region: "Tech Citadel", description: "AI, ICT, app building, security, and career." },
+  { category: "Life", region: "Life Observatory", description: "Timelines, goals, personal data, and meta-analysis." },
+  { category: "Archive", region: "Archive Caverns", description: "Older exports, reports, and unsorted research." }
+];
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function loadDiscoveredIds() {
+  try {
+    const raw = window.localStorage.getItem(DISCOVERED_STORAGE_KEY);
+    if (!raw) return new Set<string>();
+    const parsed = JSON.parse(raw);
+    return new Set<string>(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function documentMatchesQuery(document: ResearchDocument, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+
+  const searchable = [
+    document.title,
+    document.category,
+    document.region,
+    document.summary,
+    document.type,
+    ...document.tags
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return searchable.includes(normalized);
+}
+
+function distanceBetween(player: PlayerPosition, document: ResearchDocument) {
+  return Math.hypot(player.x - document.x, player.y - document.y);
+}
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
+}
+
+export default function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>("map");
+  const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<ResearchCategory | "All">("All");
+  const [player, setPlayer] = useState<PlayerPosition>(STARTING_POSITION);
+  const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
+  const [discoveredIds, setDiscoveredIds] = useState<Set<string>>(() => loadDiscoveredIds());
+
+  const playerRef = useRef(player);
+  const keysRef = useRef(new Set<string>());
+  const touchVectorRef = useRef({ x: 0, y: 0 });
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const filteredDocuments = useMemo(() => {
+    return researchManifest.filter((document) => {
+      const categoryMatches = selectedCategory === "All" || document.category === selectedCategory;
+      return categoryMatches && documentMatchesQuery(document, query);
+    });
+  }, [query, selectedCategory]);
+
+  const nearestDocument = useMemo(() => {
+    let nearest: ResearchDocument | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const document of filteredDocuments) {
+      const distance = distanceBetween(player, document);
+      if (distance <= INSPECT_DISTANCE && distance < nearestDistance) {
+        nearest = document;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
+  }, [filteredDocuments, player]);
+
+  const setDiscovered = useCallback((documentId: string) => {
+    setDiscoveredIds((current) => {
+      const next = new Set(current);
+      next.add(documentId);
+      window.localStorage.setItem(DISCOVERED_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
+  const inspectDocument = useCallback(
+    (document: ResearchDocument) => {
+      setSelectedDocument(document);
+      setDiscovered(document.id);
+    },
+    [setDiscovered]
+  );
+
+  const movePlayer = useCallback((deltaSeconds: number) => {
+    const keys = keysRef.current;
+    const touchVector = touchVectorRef.current;
+
+    let dx = touchVector.x;
+    let dy = touchVector.y;
+
+    if (keys.has("arrowleft") || keys.has("a")) dx -= 1;
+    if (keys.has("arrowright") || keys.has("d")) dx += 1;
+    if (keys.has("arrowup") || keys.has("w")) dy -= 1;
+    if (keys.has("arrowdown") || keys.has("s")) dy += 1;
+
+    if (dx === 0 && dy === 0) return;
+
+    const length = Math.hypot(dx, dy) || 1;
+    const next = {
+      x: clamp(playerRef.current.x + (dx / length) * PLAYER_SPEED * deltaSeconds, 35, WORLD_WIDTH - 35),
+      y: clamp(playerRef.current.y + (dy / length) * PLAYER_SPEED * deltaSeconds, 35, WORLD_HEIGHT - 35)
+    };
+
+    playerRef.current = next;
+    setPlayer(next);
+  }, []);
+
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
+
+  useEffect(() => {
+    let animationFrame = 0;
+    let lastTime = performance.now();
+
+    const tick = (time: number) => {
+      const deltaSeconds = Math.min(0.05, (time - lastTime) / 1000);
+      lastTime = time;
+      movePlayer(deltaSeconds);
+      animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    animationFrame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [movePlayer]);
+
+  useEffect(() => {
+    const movementKeys = new Set(["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"]);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+
+      if (event.key === "/" && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      if (key === "escape") {
+        setSelectedDocument(null);
+        return;
+      }
+
+      if (
+        (key === "e" || key === "enter" || key === " ") &&
+        viewMode === "map" &&
+        nearestDocument &&
+        !isTypingTarget(event.target)
+      ) {
+        event.preventDefault();
+        inspectDocument(nearestDocument);
+        return;
+      }
+
+      if (movementKeys.has(key) && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        keysRef.current.add(key);
+      }
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      keysRef.current.delete(event.key.toLowerCase());
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [inspectDocument, nearestDocument, viewMode]);
+
+  useEffect(() => {
+    window.advanceTime = (ms: number) => {
+      const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+      for (let index = 0; index < steps; index += 1) {
+        movePlayer(1 / 60);
+      }
+    };
+
+    return () => {
+      delete window.advanceTime;
+    };
+  }, [movePlayer]);
+
+  useEffect(() => {
+    window.render_game_to_text = () =>
+      JSON.stringify({
+        coordinateSystem: "Origin is top-left of the 1800x1200 world. X increases right. Y increases down.",
+        viewMode,
+        player: {
+          x: Math.round(playerRef.current.x),
+          y: Math.round(playerRef.current.y)
+        },
+        nearestDocument: nearestDocument
+          ? {
+              id: nearestDocument.id,
+              title: nearestDocument.title,
+              distance: Math.round(distanceBetween(playerRef.current, nearestDocument))
+            }
+          : null,
+        selectedDocument: selectedDocument
+          ? {
+              id: selectedDocument.id,
+              title: selectedDocument.title
+            }
+          : null,
+        visibleDocuments: filteredDocuments.slice(0, 12).map((document) => ({
+          id: document.id,
+          title: document.title,
+          x: document.x,
+          y: document.y,
+          category: document.category,
+          discovered: discoveredIds.has(document.id)
+        })),
+        visibleDocumentCount: filteredDocuments.length,
+        discoveredCount: discoveredIds.size,
+        totalCount: researchManifest.length,
+        activeFilter: selectedCategory,
+        query
+      });
+
+    return () => {
+      delete window.render_game_to_text;
+    };
+  }, [discoveredIds, filteredDocuments, nearestDocument, query, selectedCategory, selectedDocument, viewMode]);
+
+  const setTouchVector = (x: number, y: number) => {
+    touchVectorRef.current = { x, y };
+  };
+
+  const clearTouchVector = () => {
+    touchVectorRef.current = { x: 0, y: 0 };
+  };
+
+  const listDocuments = filteredDocuments.map((document) => {
+    const discovered = discoveredIds.has(document.id);
+    return (
+      <article key={document.id} className={`list-card list-card--${document.category.toLowerCase()}`}>
+        <div>
+          <p className="eyebrow">{document.region}</p>
+          <h2>{document.title}</h2>
+          <p>{document.summary}</p>
+          <div className="tag-list">
+            {document.tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </div>
+        </div>
+        <div className="list-card__actions">
+          <span>{discovered ? "Discovered" : "Undiscovered"}</span>
+          <button type="button" onClick={() => inspectDocument(document)}>
+            Inspect
+          </button>
+        </div>
+      </article>
+    );
+  });
+
+  return (
+    <main className="app-shell">
+      <div className="app-layout">
+        <div className="side-column">
+          <AtlasSidebar
+            discoveredCount={discoveredIds.size}
+            totalCount={researchManifest.length}
+            regionInfo={regionInfo}
+          />
+          <SearchPanel
+            query={query}
+            onQueryChange={setQuery}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            resultCount={filteredDocuments.length}
+            searchInputRef={searchInputRef}
+          />
+        </div>
+
+        <div className="content-column">
+          {viewMode === "map" ? (
+            <GameMap
+              documents={filteredDocuments}
+              player={player}
+              nearestDocumentId={nearestDocument?.id ?? null}
+              discoveredIds={discoveredIds}
+              onInspectDocument={inspectDocument}
+            />
+          ) : (
+            <section className="list-view" aria-label="Research document list">
+              {listDocuments.length > 0 ? listDocuments : <p className="empty-state">No documents match the current search.</p>}
+            </section>
+          )}
+        </div>
+      </div>
+
+      {viewMode === "map" && (
+        <div className="touch-controls" aria-label="Touch movement controls">
+          <button
+            type="button"
+            className="touch-controls__button touch-controls__button--up"
+            title="Move up"
+            onPointerDown={() => setTouchVector(0, -1)}
+            onPointerUp={clearTouchVector}
+            onPointerLeave={clearTouchVector}
+          >
+            ^
+          </button>
+          <button
+            type="button"
+            className="touch-controls__button touch-controls__button--left"
+            title="Move left"
+            onPointerDown={() => setTouchVector(-1, 0)}
+            onPointerUp={clearTouchVector}
+            onPointerLeave={clearTouchVector}
+          >
+            &lt;
+          </button>
+          <button
+            type="button"
+            className="touch-controls__button touch-controls__button--right"
+            title="Move right"
+            onPointerDown={() => setTouchVector(1, 0)}
+            onPointerUp={clearTouchVector}
+            onPointerLeave={clearTouchVector}
+          >
+            &gt;
+          </button>
+          <button
+            type="button"
+            className="touch-controls__button touch-controls__button--down"
+            title="Move down"
+            onPointerDown={() => setTouchVector(0, 1)}
+            onPointerUp={clearTouchVector}
+            onPointerLeave={clearTouchVector}
+          >
+            v
+          </button>
+          <button
+            type="button"
+            className="touch-controls__inspect"
+            disabled={!nearestDocument}
+            onClick={() => nearestDocument && inspectDocument(nearestDocument)}
+          >
+            E
+          </button>
+        </div>
+      )}
+
+      {selectedDocument && (
+        <DocumentPanel
+          document={selectedDocument}
+          discovered={discoveredIds.has(selectedDocument.id)}
+          onClose={() => setSelectedDocument(null)}
+        />
+      )}
+    </main>
+  );
+}
