@@ -34,7 +34,7 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 - Implemented **Memory Shrines**: One shrine per major region that resurfaces older or undiscovered research.
 - Upgraded **Document Panels**: Added Favourites, Revisit markers, Copy Link, and expanded metadata (Difficulty, Reading Time, Prompts).
 - Implemented **In-App Reader**: Documents now open in a customizable Kindle-like panel with Preview, Summary, Memory, and Related tabs.
-- Added **Reader Settings**: Persistable options for open modes (Right Drawer, Bottom, Fullscreen), themes (Light, Dark, Sepia), and font sizing.
+- Added **Reader Settings**: Persistable options for open modes (Right Drawer, Bottom, Fullscreen), themes (Light, Dark, Sepia), and font sizing (Hotkey: ,).
 - Integrated **Touch Controls**: Natural one-finger map panning and two-finger pinch-to-zoom for mobile/tablet users.
 - Added **Daily Quest System**: Simple, persistent daily tasks to guide exploration and retention.
 

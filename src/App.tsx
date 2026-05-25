@@ -529,7 +529,7 @@ export default function App() {
         return;
       }
 
-      if (key === "s" && !isTypingTarget(event.target)) {
+      if (key === "," && !isTypingTarget(event.target)) {
         event.preventDefault();
         setIsSettingsOpen((prev) => !prev);
         return;
@@ -1048,7 +1048,7 @@ export default function App() {
                   />
 
                   <div className="map-controls">
-                    <button onClick={() => setIsSettingsOpen(true)} title="Settings (S)">⚙</button>
+                    <button onClick={() => setIsSettingsOpen(true)} title="Settings (,)">⚙</button>
                     <button onClick={() => setZoom(prev => clamp(prev + 0.1, 0.5, 2.0))} title="Zoom In">+</button>
                     <button onClick={() => setZoom(prev => clamp(prev - 0.1, 0.5, 2.0))} title="Zoom Out">-</button>
                     <button onClick={() => setZoom(1.0)} title="Reset Zoom">1:1</button>
