@@ -19,6 +19,7 @@ Research Atlas is a public, game-like library for deep research PDFs and Google 
 ## Learn More
 
 See `docs/learning-enhancements.md` for the current learning design direction, low-cognitive-load research features, and the next roadmap.
+See `docs/manifest-workflow.md` for validating public links and regenerating the manifest from a CSV export.
 
 ## Run Locally
 
@@ -31,6 +32,12 @@ npm run dev
 
 ```bash
 npm run build
+```
+
+## Validate Research Links
+
+```bash
+npm run validate:manifest
 ```
 
 ## Deploy to Vercel
@@ -64,7 +71,12 @@ export type ResearchDocument = {
 
 The `x` and `y` values place the document on the 1800 by 1200 map. Keep public Drive or Docs URLs in the `url` field.
 
-## V2 Direction
+## Manifest Import
 
-The next useful expansion is a Drive folder import script that reads the public "Deep Research" folder and generates `src/data/researchManifest.ts` automatically.
+To regenerate the atlas from a Google Sheet or Drive metadata CSV:
 
+```bash
+npm run import:manifest -- docs/research-manifest-template.csv
+```
+
+Review the generated diff, then run `npm run validate:manifest` and `npm run build`.

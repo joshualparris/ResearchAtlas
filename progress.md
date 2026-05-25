@@ -15,4 +15,4 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 
 ## TODO
 
-- Consider a V2 generator that imports public Drive metadata and rewrites `researchManifest.ts`.
+- Keep public links current as Drive documents are added or reshared.

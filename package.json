@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "validate:manifest": "node scripts/validateManifest.mjs",
+    "import:manifest": "node scripts/importDriveManifest.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
