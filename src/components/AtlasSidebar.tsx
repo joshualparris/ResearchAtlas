@@ -30,6 +30,7 @@ type AtlasSidebarProps = {
   todayTarget: string;
   regionInfo: RegionInfo[];
   currentRegion: string;
+  onJumpToRegion: (region: string) => void;
   onResetProgress: () => void;
   checkIn: string;
   onCheckInChange: (value: string) => void;
@@ -46,6 +47,7 @@ export function AtlasSidebar({
   todayTarget,
   regionInfo,
   currentRegion,
+  onJumpToRegion,
   onResetProgress,
   checkIn,
   onCheckInChange,
@@ -151,6 +153,9 @@ export function AtlasSidebar({
             <div>
               <strong>{region.region}</strong>
               <p>{region.description}</p>
+              <button type="button" onClick={() => onJumpToRegion(region.region)}>
+                Travel
+              </button>
             </div>
           </div>
         ))}

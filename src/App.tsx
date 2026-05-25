@@ -372,6 +372,21 @@ export default function App() {
     touchVectorRef.current = { x: 0, y: 0 };
   };
 
+  const jumpToRegion = (region: string) => {
+    const zone = regionZones.find((item) => item.region === region);
+    if (!zone) return;
+
+    const next = {
+      x: zone.x + zone.width / 2,
+      y: zone.y + zone.height / 2
+    };
+
+    playerRef.current = next;
+    setPlayer(next);
+    setViewMode("map");
+    clearTouchVector();
+  };
+
   const closeDocument = () => {
     setSelectedDocument(null);
     setFocusMode(false);
@@ -510,6 +525,7 @@ export default function App() {
               todayTarget={todayTarget}
               regionInfo={regionInfo}
               currentRegion={currentRegion}
+              onJumpToRegion={jumpToRegion}
               onResetProgress={resetDiscovered}
               checkIn={checkIn}
               onCheckInChange={setCheckIn}
