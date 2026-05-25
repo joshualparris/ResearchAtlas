@@ -12,7 +12,13 @@ Research Atlas is a public, game-like library for deep research PDFs and Google 
 - Slash key focuses search
 - Local discovery progress saved in `localStorage`
 - Search, category filters, region legend, map view, and list view
+- Recent view history and review suggestions for rediscovery
+- Daily self-check-in to support mindful research habits
 - Public static manifest in `src/data/researchManifest.ts`
+
+## Learn More
+
+See `docs/learning-enhancements.md` for the current learning design direction, low-cognitive-load research features, and the next roadmap.
 
 ## Run Locally
 

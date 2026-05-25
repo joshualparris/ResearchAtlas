@@ -6,12 +6,29 @@ type RegionInfo = {
   description: string;
 };
 
+type RecentViewInfo = {
+  id: string;
+  title: string;
+  viewedAt: string;
+};
+
+type ReviewDueInfo = {
+  id: string;
+  title: string;
+  daysAgo: number;
+};
+
 type AtlasSidebarProps = {
   discoveredCount: number;
   totalCount: number;
   regionInfo: RegionInfo[];
   currentRegion: string;
   onResetProgress: () => void;
+  checkIn: string;
+  onCheckInChange: (value: string) => void;
+  onCheckInSave: () => void;
+  recentViews: RecentViewInfo[];
+  reviewDue: ReviewDueInfo[];
 };
 
 export function AtlasSidebar({
@@ -19,7 +36,12 @@ export function AtlasSidebar({
   totalCount,
   regionInfo,
   currentRegion,
-  onResetProgress
+  onResetProgress,
+  checkIn,
+  onCheckInChange,
+  onCheckInSave,
+  recentViews,
+  reviewDue
 }: AtlasSidebarProps) {
   const progressPercent = totalCount > 0 ? Math.round((discoveredCount / totalCount) * 100) : 0;
 
@@ -47,6 +69,50 @@ export function AtlasSidebar({
           </button>
         </div>
       </div>
+
+      <div className="sidebar-checkin" aria-label="Daily check-in">
+        <strong>Daily Check-in</strong>
+        <p>How are you feeling physically, mentally, spiritually today?</p>
+        <textarea
+          value={checkIn}
+          onChange={(event) => onCheckInChange(event.target.value)}
+          placeholder="Write a short check-in..."
+          rows={4}
+        />
+        <button type="button" onClick={onCheckInSave}>
+          Save Check-in
+        </button>
+      </div>
+
+      {(reviewDue.length > 0 || recentViews.length > 0) && (
+        <div className="sidebar-suggestions" aria-label="Recent research suggestions">
+          {reviewDue.length > 0 && (
+            <div className="suggestion-card suggestion-card--review-due">
+              <strong>Ready to revisit</strong>
+              <p>These documents are due for a review cycle.</p>
+              <ul>
+                {reviewDue.map((item) => (
+                  <li key={item.id}>
+                    {item.title} · {item.daysAgo} day{item.daysAgo === 1 ? "" : "s"} ago
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {recentViews.length > 0 && (
+            <div className="suggestion-card suggestion-card--recently-viewed">
+              <strong>Recently opened</strong>
+              <p>Jump back into your latest discoveries.</p>
+              <ul>
+                {recentViews.map((item) => (
+                  <li key={item.id}>{item.title}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="region-legend" aria-label="Region legend">
         {regionInfo.map((region) => (

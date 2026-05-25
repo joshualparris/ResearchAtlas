@@ -14,9 +14,17 @@ declare global {
 }
 
 const DISCOVERED_STORAGE_KEY = "research-atlas.discovered.v1";
+const RECENT_VIEWS_STORAGE_KEY = "research-atlas.recent-views.v1";
+const CHECKIN_STORAGE_KEY = "research-atlas.checkin.v1";
+const REVIEW_DUE_DAYS = 7;
 const PLAYER_SPEED = 265;
 const INSPECT_DISTANCE = 105;
 const STARTING_POSITION: PlayerPosition = { x: 900, y: 600 };
+
+type RecentView = {
+  id: string;
+  viewedAt: string;
+};
 
 const regionInfo: Array<{ category: ResearchCategory; region: string; description: string }> = [
   { category: "Health", region: "Health Highlands", description: "Sleep, movement, body systems, and recovery." },
@@ -40,6 +48,29 @@ function loadDiscoveredIds() {
     return new Set<string>(Array.isArray(parsed) ? parsed : []);
   } catch {
     return new Set<string>();
+  }
+}
+
+function loadRecentViews() {
+  try {
+    const raw = window.localStorage.getItem(RECENT_VIEWS_STORAGE_KEY);
+    if (!raw) return [] as RecentView[];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [] as RecentView[];
+    return parsed.filter(
+      (item): item is RecentView =>
+        item && typeof item.id === "string" && typeof item.viewedAt === "string"
+    );
+  } catch {
+    return [] as RecentView[];
+  }
+}
+
+function loadCheckIn() {
+  try {
+    return window.localStorage.getItem(CHECKIN_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
   }
 }
 
@@ -77,6 +108,8 @@ export default function App() {
   const [player, setPlayer] = useState<PlayerPosition>(STARTING_POSITION);
   const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
   const [discoveredIds, setDiscoveredIds] = useState<Set<string>>(() => loadDiscoveredIds());
+  const [recentViews, setRecentViews] = useState<RecentView[]>(() => loadRecentViews());
+  const [checkIn, setCheckIn] = useState<string>(() => loadCheckIn());
 
   const playerRef = useRef(player);
   const keysRef = useRef(new Set<string>());
@@ -134,6 +167,17 @@ export default function App() {
     (document: ResearchDocument) => {
       setSelectedDocument(document);
       setDiscovered(document.id);
+      const viewedAt = new Date().toISOString();
+      setRecentViews((current) => {
+        const next = [{ id: document.id, viewedAt }, ...current.filter((item) => item.id !== document.id)];
+        const truncated = next.slice(0, 10);
+        try {
+          window.localStorage.setItem(RECENT_VIEWS_STORAGE_KEY, JSON.stringify(truncated));
+        } catch {
+          // ignore storage errors
+        }
+        return truncated;
+      });
     },
     [setDiscovered]
   );
@@ -290,6 +334,15 @@ export default function App() {
     touchVectorRef.current = { x: 0, y: 0 };
   };
 
+  const saveCheckIn = (text: string) => {
+    setCheckIn(text);
+    try {
+      window.localStorage.setItem(CHECKIN_STORAGE_KEY, text);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
   const relatedDocuments = useMemo(() => {
     if (!selectedDocument) return [];
 
@@ -315,6 +368,28 @@ export default function App() {
     );
     return zone?.region ?? "Wilderness";
   }, [player]);
+
+  const recentDocuments = useMemo(() => {
+    return recentViews
+      .map((view) => {
+        const document = researchManifest.find((item) => item.id === view.id);
+        return document ? { ...document, viewedAt: view.viewedAt } : null;
+      })
+      .filter((document): document is ResearchDocument & { viewedAt: string } => document !== null)
+      .slice(0, 5);
+  }, [recentViews]);
+
+  const reviewDueDocuments = useMemo(() => {
+    const msPerDay = 1000 * 60 * 60 * 24;
+    return recentDocuments
+      .map((document) => {
+        const daysAgo = Math.floor((Date.now() - new Date(document.viewedAt).getTime()) / msPerDay);
+        return { ...document, daysAgo };
+      })
+      .filter((document) => document.daysAgo >= REVIEW_DUE_DAYS)
+      .sort((a, b) => b.daysAgo - a.daysAgo)
+      .slice(0, 3);
+  }, [recentDocuments]);
 
   const listDocuments = filteredDocuments.map((document) => {
     const discovered = discoveredIds.has(document.id);
@@ -350,6 +425,19 @@ export default function App() {
             regionInfo={regionInfo}
             currentRegion={currentRegion}
             onResetProgress={resetDiscovered}
+            checkIn={checkIn}
+            onCheckInChange={setCheckIn}
+            onCheckInSave={() => saveCheckIn(checkIn)}
+            recentViews={recentDocuments.map((document) => ({
+              id: document.id,
+              title: document.title,
+              viewedAt: document.viewedAt
+            }))}
+            reviewDue={reviewDueDocuments.map((document) => ({
+              id: document.id,
+              title: document.title,
+              daysAgo: document.daysAgo
+            }))}
           />
           <SearchPanel
             query={query}
