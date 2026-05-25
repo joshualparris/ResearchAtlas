@@ -30,6 +30,7 @@ type AtlasSidebarProps = {
   todayTarget: string;
   regionInfo: RegionInfo[];
   currentRegion: string;
+  onJumpToRegion: (region: string) => void;
   onResetProgress: () => void;
   checkIn: string;
   onCheckInChange: (value: string) => void;
@@ -47,6 +48,7 @@ export function AtlasSidebar({
   todayTarget,
   regionInfo,
   currentRegion,
+  onJumpToRegion,
   onResetProgress,
   checkIn,
   onCheckInChange,
@@ -86,6 +88,7 @@ export function AtlasSidebar({
         <p>{todayTarget}</p>
         <div className="progress-badge">
           <span>{progressPercent}%</span>
+          {" "}
           <small>completed</small>
         </div>
       </div>

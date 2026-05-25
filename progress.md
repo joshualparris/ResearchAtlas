@@ -14,6 +14,7 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 - Verified map inspect flow with the Playwright web-game client and confirmed the rendered Open Document link uses the expected Google Docs URL with safe link attributes.
 - Added and pushed focus mode, manifest import/validation tooling, bookmarks, curated research trails, and region quick travel as separate checkpoints.
 - Added guided learning objectives, field-note prompts, and styled auto-saved personal insight notes for document inspection.
+- Re-ran `npm run build`, `npm run validate:manifest`, and the Playwright web-game client for inspect flow and region quick travel; screenshots confirmed the guided prompt, safe document action, quick travel, and progress badge spacing.
 
 ## TODO
 
