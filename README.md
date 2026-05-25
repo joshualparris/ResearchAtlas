@@ -4,20 +4,17 @@ Research Atlas is a public, game-like library for deep research PDFs and Google 
 
 ## Features
 
-- React, Vite, and TypeScript
-- No backend, auth, API key, or database
-- WASD and arrow-key movement
-- E to inspect nearby documents
-- Escape to close the document panel
-- Slash key focuses search
-- Local discovery progress saved in `localStorage`
-- Search, category filters, region legend, map view, and list view
-- Curated research trails with per-trail discovery progress
-- Region quick travel from the atlas legend
-- Guided learning objectives, field-note prompts, and auto-saved personal insights
-- Recent view history and review suggestions for rediscovery
-- Daily self-check-in to support mindful research habits
-- Public static manifest in `src/data/researchManifest.ts`
+- **React, Vite, and TypeScript**: Modern, performant frontend stack.
+- **Light/Dark Mode**: High-contrast themes for accessibility and deep research.
+- **Game-like Exploration**: WASD and arrow-key movement through a top-down fantasy map.
+- **Gems & Spaced Repetition**: Capture insights/questions and review them using SM-2 logic.
+- **Read Aloud (TTS)**: Built-in text-to-speech for dual-channel learning reinforcement.
+- **Reflective Integration**: Guided learning objectives and reflective questions for each document.
+- **Rediscovery Quests**: Automated prompts to revisit older research and combat forgetting.
+- **Focus Mode**: Distraction-free reading UI for deep immersion.
+- **Search & Filters**: Comprehensive search, category filters, and curated research trails.
+- **Local Persistence**: All progress, notes, and gems saved in `localStorage`.
+- **Manifest Import**: Tools for validating links and importing metadata from CSV.
 
 ## Learn More
 

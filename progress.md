@@ -15,8 +15,20 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 - Added and pushed focus mode, manifest import/validation tooling, bookmarks, curated research trails, and region quick travel as separate checkpoints.
 - Added guided learning objectives, field-note prompts, and styled auto-saved personal insight notes for document inspection.
 - Re-ran `npm run build`, `npm run validate:manifest`, and the Playwright web-game client for inspect flow and region quick travel; screenshots confirmed the guided prompt, safe document action, quick travel, and progress badge spacing.
+- Implemented **Light/Dark Mode** toggle with persistent `localStorage` and system preference detection.
+- Refactored styles to use a comprehensive **CSS Variable system** for easier theming and maintenance.
+- Added **Gems System**: A spaced-repetition engine for capturing insights, questions, and quotations directly from documents.
+- Integrated **SM-2 Spaced Repetition Logic** to schedule gem reviews and strengthen long-term retention.
+- Added **Read Aloud (Text-to-Speech)** support to the document panel for dual-channel cognitive reinforcement.
+- Implemented **Rediscovery Quests**: Automated prompts to revisit older research and combat the "forgetting curve."
+- Added **Reflective Integration Questions**: Randomized prompts in the document panel to encourage active synthesis of research.
+- Performed a **Systematic SWOT Audit** comparing Research Atlas and Research Gems to align with memory-science principles.
+- Refined **Focus Mode** with a distraction-free, centered reading UI optimized for deep attention.
 
 ## TODO
 
-- Keep public links current as Drive documents are added or reshared.
-- Next expansion idea: generate a small "journey recap" from discovered documents, bookmarks, and notes.
+- **Journey Recap**: Generate a visual or text-based summary of the user's research journey (discovered docs, bookmarks, captured gems).
+- **Dedicated Review Dashboard**: Build a full-screen interface for managing and reviewing the entire "Gems" library.
+- **Accessibility Polish**: Improve keyboard-first navigation (focus trapping, skip links) and neurodivergent-friendly UI refinements.
+- **Manifest Expansion**: Continue adding learning-oriented research documents and active links.
+- **Link Maintenance**: Keep public Google Drive links current.

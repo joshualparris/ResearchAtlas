@@ -4,10 +4,13 @@ This document explains the current learning-focused improvements and the next ro
 
 ## New App Improvements
 
+- **Gems & Spaced Repetition**: Learners can capture "Gems" (insights, questions, quotes) for each document. A built-in scheduler (SM-2 logic) suggests reviews to strengthen long-term memory.
+- **Read Aloud (TTS)**: A "Listen" feature supports dual-channel learning (visual + auditory) which aids comprehension and reduces cognitive load.
+- **Rediscovery Quests**: The app identifies "stale" discoveries (docs not viewed for 30+ days) and prompts learners to revisit them.
+- **Reflective Integration**: Documents now include randomized reflective questions to encourage active recall and personal application.
 - **Daily check-in**: A simple self-reflection prompt in the sidebar supports physical, mental, and spiritual awareness.
-- **Recent viewing history**: The app now saves the last few opened documents so learners can jump back to recent discoveries.
-- **Review suggestions**: Documents not opened for a week or more appear as "Ready to revisit" so people can reinforce memory and rediscover useful research.
-- **Local persistence**: Check-ins and recent view history are stored in `localStorage` so the experience remains stable between sessions.
+- **Light/Dark Mode**: Comprehensive theming supports better accessibility and comfort during deep reading sessions.
+- **Local persistence**: Gems, check-ins, view history, and notes are all stored in `localStorage` for a stable, offline-first experience.
 
 ## Learning Design Goals
 
