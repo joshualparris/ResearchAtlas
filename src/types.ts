@@ -29,6 +29,27 @@ export type ResearchDocument = {
   difficulty?: "light" | "moderate" | "deep";
   memoryPrompt?: string;
   actionPrompt?: string;
+  keyPassages?: string[];
+};
+
+export type DocumentOpenMode = "external" | "right-drawer" | "bottom-drawer" | "top-drawer" | "fullscreen";
+export type ReaderTheme = "system" | "light" | "dark" | "sepia" | "high-contrast";
+export type ReaderWidth = "narrow" | "comfortable" | "wide";
+export type FontSize = "small" | "medium" | "large" | "extra-large";
+export type LineHeight = "compact" | "comfortable" | "spacious";
+export type ReaderTab = "preview" | "summary" | "memory" | "related";
+export type TouchControlMode = "pan-map" | "move-player" | "hybrid";
+
+export type ReaderSettings = {
+  documentOpenMode: DocumentOpenMode;
+  readerTheme: ReaderTheme;
+  readerWidth: ReaderWidth;
+  fontSize: FontSize;
+  lineHeight: LineHeight;
+  defaultReaderTab: ReaderTab;
+  autoMarkAsOpened: boolean;
+  showReaderOnDocumentClick: boolean;
+  touchControlMode: TouchControlMode;
 };
 
 export type TeleportGate = {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { PlayerPosition, ResearchDocument, ResearchCategory, TeleportGate } from "../types";
+import type { PlayerPosition, ResearchDocument, ResearchCategory, TeleportGate, TouchControlMode } from "../types";
 import { DocumentObject } from "./DocumentObject";
 import { Player } from "./Player";
 import { teleportGates } from "../data/teleportGates";
@@ -7,6 +7,10 @@ import { memoryShrines } from "../data/memoryShrines";
 
 export const WORLD_WIDTH = 2200;
 export const WORLD_HEIGHT = 2400;
+
+export function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 type RegionZone = {
   category: ResearchCategory;
@@ -47,11 +51,8 @@ type GameMapProps = {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   trackingDocument: ResearchDocument | null;
+  touchControlMode: TouchControlMode;
 };
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
 
 export function GameMap({
   documents,
@@ -64,10 +65,16 @@ export function GameMap({
   onInspectShrine,
   zoom,
   onZoomChange,
-  trackingDocument
+  trackingDocument,
+  touchControlMode
 }: GameMapProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [viewport, setViewport] = useState({ width: 900, height: 640 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
+  const [pointers, setPointers] = useState<Map<number, PointerEvent>>(new Map());
+  const [lastPinchDist, setLastPinchDist] = useState<number | null>(null);
 
   useEffect(() => {
     const node = viewportRef.current;
@@ -97,33 +104,84 @@ export function GameMap({
     };
   }, [onZoomChange, zoom]);
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    const newPointers = new Map(pointers);
+    newPointers.set(e.pointerId, e.nativeEvent);
+    setPointers(newPointers);
+
+    if (newPointers.size === 1 && touchControlMode === "pan-map") {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+    } else if (newPointers.size === 2) {
+      setIsPanning(false);
+      const pts = Array.from(newPointers.values());
+      const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+      setLastPinchDist(dist);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const newPointers = new Map(pointers);
+    if (!newPointers.has(e.pointerId)) return;
+    newPointers.set(e.pointerId, e.nativeEvent);
+    setPointers(newPointers);
+
+    if (isPanning && newPointers.size === 1) {
+      const dx = (e.clientX - panStart.x) / zoom;
+      const dy = (e.clientY - panStart.y) / zoom;
+      setCameraOffset(prev => ({ x: prev.x - dx, y: prev.y - dy }));
+      setPanStart({ x: e.clientX, y: e.clientY });
+    } else if (newPointers.size === 2) {
+      const pts = Array.from(newPointers.values());
+      const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+      
+      if (lastPinchDist !== null) {
+        const delta = dist - lastPinchDist;
+        const zoomFactor = delta * 0.005;
+        onZoomChange(clamp(zoom + zoomFactor, 0.5, 2.0));
+      }
+      setLastPinchDist(dist);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    const newPointers = new Map(pointers);
+    newPointers.delete(e.pointerId);
+    setPointers(newPointers);
+
+    if (newPointers.size < 1) {
+      setIsPanning(false);
+      setLastPinchDist(null);
+    }
+  };
+
   const camera = useMemo(() => {
     const visibleWidth = viewport.width / zoom;
     const visibleHeight = viewport.height / zoom;
     const maxX = Math.max(0, WORLD_WIDTH - visibleWidth);
     const maxY = Math.max(0, WORLD_HEIGHT - visibleHeight);
+    
+    // Base camera follows player
+    const baseCameraX = clamp(player.x - visibleWidth / 2, 0, maxX);
+    const baseCameraY = clamp(player.y - visibleHeight / 2, 0, maxY);
+
+    // Apply manual pan offset
     return {
-      x: clamp(player.x - visibleWidth / 2, 0, maxX),
-      y: clamp(player.y - visibleHeight / 2, 0, maxY)
+      x: clamp(baseCameraX + cameraOffset.x, 0, maxX),
+      y: clamp(baseCameraY + cameraOffset.y, 0, maxY)
     };
-  }, [player.x, player.y, viewport.height, viewport.width, zoom]);
+  }, [player.x, player.y, viewport.height, viewport.width, zoom, cameraOffset]);
 
   return (
-    <section className="game-map" aria-label="Research Atlas map">
-      <div className="map-controls">
-        <button onClick={() => onZoomChange(clamp(zoom + 0.1, 0.5, 2.0))} title="Zoom In">+</button>
-        <button onClick={() => onZoomChange(clamp(zoom - 0.1, 0.5, 2.0))} title="Zoom Out">-</button>
-        <button onClick={() => onZoomChange(1.0)} title="Reset Zoom">1:1</button>
-        <button
-          onClick={() => {
-            const fitZoom = Math.min(viewport.width / WORLD_WIDTH, viewport.height / WORLD_HEIGHT);
-            onZoomChange(clamp(fitZoom, 0.5, 2.0));
-          }}
-          title="Fit World"
-        >
-          Fit
-        </button>
-      </div>
+    <section 
+      className="game-map" 
+      aria-label="Research Atlas map"
+      style={{ touchAction: "none" }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
       <div className="map-prompt" aria-live="polite">
         {nearestDocumentId && "Press E to inspect"}
         {nearestGateId && "Press T to teleport"}

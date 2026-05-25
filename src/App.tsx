@@ -5,11 +5,13 @@ import { GameMap, WORLD_HEIGHT, WORLD_WIDTH, regionZones } from "./components/Ga
 import { SearchPanel } from "./components/SearchPanel";
 import { Minimap } from "./components/Minimap";
 import { Compass } from "./components/Compass";
+import { InAppReader } from "./components/InAppReader";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { researchManifest } from "./data/researchManifest";
 import { researchTrails } from "./data/researchTrails";
 import { teleportGates } from "./data/teleportGates";
 import { memoryShrines } from "./data/memoryShrines";
-import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode, ResearchGem, GemRating, TeleportGate, MemoryShrine, DailyQuest } from "./types";
+import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode, ResearchGem, GemRating, TeleportGate, MemoryShrine, DailyQuest, ReaderSettings, TouchControlMode } from "./types";
 
 declare global {
   interface Window {
@@ -24,6 +26,7 @@ const REVISIT_STORAGE_KEY = "research-atlas.revisit.v1";
 const RECENT_VIEWS_STORAGE_KEY = "research-atlas.recent-views.v1";
 const CHECKIN_STORAGE_KEY = "research-atlas.checkin.v1";
 const THEME_STORAGE_KEY = "research-atlas.theme.v1";
+const SETTINGS_STORAGE_KEY = "research-atlas.settings.v1";
 const GEMS_STORAGE_KEY = "research-atlas.gems.v1";
 const QUEST_STORAGE_KEY = "research-atlas.quest.v1";
 const REVIEW_DUE_DAYS = 7;
@@ -31,7 +34,29 @@ const PLAYER_SPEED = 265;
 const INSPECT_DISTANCE = 105;
 const STARTING_POSITION: PlayerPosition = { x: 900, y: 600 };
 
+const DEFAULT_SETTINGS: ReaderSettings = {
+  documentOpenMode: "right-drawer",
+  readerTheme: "system",
+  readerWidth: "comfortable",
+  fontSize: "medium",
+  lineHeight: "comfortable",
+  defaultReaderTab: "preview",
+  autoMarkAsOpened: true,
+  showReaderOnDocumentClick: true,
+  touchControlMode: "pan-map"
+};
+
 type ThemeMode = "light" | "dark";
+
+function loadReaderSettings(): ReaderSettings {
+  try {
+    const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!stored) return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
 
 function loadThemeMode() {
   try {
@@ -187,6 +212,9 @@ export default function App() {
   const [player, setPlayer] = useState<PlayerPosition>(STARTING_POSITION);
   const [zoom, setZoom] = useState(1.0);
   const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
+  const [isReaderOpen, setIsReaderOpen] = useState(false);
+  const [readerSettings, setReaderSettings] = useState<ReaderSettings>(() => loadReaderSettings());
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedShrineId, setSelectedShrineId] = useState<string | null>(null);
   const [shrineDiscovery, setShrineDiscovery] = useState<ResearchDocument | null>(null);
   const [isTeleportMenuOpen, setIsTeleportMenuOpen] = useState(false);
@@ -326,10 +354,29 @@ export default function App() {
     });
   }, []);
 
+  const updateReaderSettings = (updates: Partial<ReaderSettings>) => {
+    setReaderSettings((prev) => {
+      const next = { ...prev, ...updates };
+      try {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   const inspectDocument = useCallback(
     (document: ResearchDocument) => {
       setSelectedDocument(document);
       setDiscovered(document.id);
+
+      if (readerSettings.documentOpenMode !== "external") {
+        setIsReaderOpen(true);
+      } else {
+        window.open(document.url, "_blank", "noopener,noreferrer");
+      }
+
       const viewedAt = new Date().toISOString();
       setRecentViews((current) => {
         const next = [{ id: document.id, viewedAt }, ...current.filter((item) => item.id !== document.id)];
@@ -475,8 +522,42 @@ export default function App() {
 
       if (key === "escape") {
         setSelectedDocument(null);
+        setIsReaderOpen(false);
+        setIsSettingsOpen(false);
         setSelectedShrineId(null);
         setIsTeleportMenuOpen(false);
+        return;
+      }
+
+      if (key === "s" && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        setIsSettingsOpen((prev) => !prev);
+        return;
+      }
+
+      if (key === "r" && !isTypingTarget(event.target)) {
+        if (nearestDocument) {
+          event.preventDefault();
+          inspectDocument(nearestDocument);
+        }
+        return;
+      }
+
+      if (key === "f" && isReaderOpen && selectedDocument && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        toggleBookmark(selectedDocument);
+        return;
+      }
+
+      if (key === "v" && isReaderOpen && selectedDocument && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        toggleRevisit(selectedDocument);
+        return;
+      }
+
+      if (key === "o" && isReaderOpen && selectedDocument && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        window.open(selectedDocument.url, "_blank", "noopener,noreferrer");
         return;
       }
 
@@ -692,6 +773,7 @@ export default function App() {
 
   const closeDocument = () => {
     setSelectedDocument(null);
+    setIsReaderOpen(false);
     setFocusMode(false);
   };
 
@@ -950,19 +1032,36 @@ export default function App() {
           <div className="content-column">
             {viewMode === "map" ? (
               <div className="map-container-relative">
-                <GameMap
-                  documents={filteredDocuments}
-                  player={player}
-                  nearestDocumentId={nearestDocument?.id ?? null}
-                  nearestGateId={nearestGate?.id ?? null}
-                  nearestShrineId={nearestShrine?.id ?? null}
-                  discoveredIds={discoveredIds}
-                  onInspectDocument={inspectDocument}
-                  onInspectShrine={(id) => setSelectedShrineId(id)}
-                  zoom={zoom}
-                  onZoomChange={setZoom}
-                  trackingDocument={researchManifest.find(d => d.id === trackingDocumentId) ?? null}
-                />
+                  <GameMap
+                    documents={filteredDocuments}
+                    player={player}
+                    nearestDocumentId={nearestDocument?.id ?? null}
+                    nearestGateId={nearestGate?.id ?? null}
+                    nearestShrineId={nearestShrine?.id ?? null}
+                    discoveredIds={discoveredIds}
+                    onInspectDocument={inspectDocument}
+                    onInspectShrine={(id) => setSelectedShrineId(id)}
+                    zoom={zoom}
+                    onZoomChange={setZoom}
+                    trackingDocument={researchManifest.find(d => d.id === trackingDocumentId) ?? null}
+                    touchControlMode={readerSettings.touchControlMode}
+                  />
+
+                  <div className="map-controls">
+                    <button onClick={() => setIsSettingsOpen(true)} title="Settings (S)">⚙</button>
+                    <button onClick={() => setZoom(prev => clamp(prev + 0.1, 0.5, 2.0))} title="Zoom In">+</button>
+                    <button onClick={() => setZoom(prev => clamp(prev - 0.1, 0.5, 2.0))} title="Zoom Out">-</button>
+                    <button onClick={() => setZoom(1.0)} title="Reset Zoom">1:1</button>
+                    <button
+                      onClick={() => {
+                        // We'd need viewport here, but for now just fit to a reasonable wide view
+                        setZoom(0.5);
+                      }}
+                      title="Fit World"
+                    >
+                      Fit
+                    </button>
+                  </div>
 
                 <div className="map-overlays">
                   <Minimap
@@ -1039,6 +1138,31 @@ export default function App() {
             E
           </button>
         </div>
+      )}
+
+      <SettingsPanel
+        settings={readerSettings}
+        onUpdate={updateReaderSettings}
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {selectedDocument && (
+        <InAppReader
+          document={selectedDocument}
+          isOpen={isReaderOpen}
+          onClose={() => setIsReaderOpen(false)}
+          readerSettings={readerSettings}
+          onOpenExternal={(doc) => window.open(doc.url, "_blank", "noopener,noreferrer")}
+          onMarkAsRead={(id) => setDiscovered(id)}
+          onAddFavourite={toggleBookmark}
+          onMarkForRevisit={toggleRevisit}
+          onAddGem={addGem}
+          relatedDocuments={relatedDocuments}
+          isFavourite={bookmarkIds.has(selectedDocument.id)}
+          isRevisit={revisitIds.has(selectedDocument.id)}
+          isRead={discoveredIds.has(selectedDocument.id)}
+        />
       )}
 
       {selectedDocument && (
