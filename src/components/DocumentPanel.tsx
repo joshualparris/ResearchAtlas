@@ -38,6 +38,8 @@ export function DocumentPanel({
   const [note, setNote] = useState("");
   const hasValidUrl = isValidUrl(document.url);
 
+  const learningObjective = document.summary.split(/(?<=[.!?])\s+/)[0] || document.summary;
+
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(`${NOTE_STORAGE_PREFIX}${document.id}`);
@@ -98,6 +100,12 @@ export function DocumentPanel({
         {document.tags.map((tag) => (
           <span key={tag}>{tag}</span>
         ))}
+      </div>
+
+      <div className="document-panel__goal" aria-label="Learning objective">
+        <strong>Learning objective</strong>
+        <p>{learningObjective}</p>
+        <p className="hint">Focus on what this research helps you understand next.</p>
       </div>
 
       <div className="document-panel__note" aria-label="Document note">
