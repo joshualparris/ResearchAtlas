@@ -4,12 +4,27 @@ type DocumentPanelProps = {
   document: ResearchDocument;
   discovered: boolean;
   onClose: () => void;
+  relatedDocuments?: ResearchDocument[];
+  onInspectRelated?: (document: ResearchDocument) => void;
 };
 
-export function DocumentPanel({ document, discovered, onClose }: DocumentPanelProps) {
-  const openDocument = () => {
-    window.open(document.url, "_blank", "noopener,noreferrer");
-  };
+function isValidUrl(url: string) {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function DocumentPanel({
+  document,
+  discovered,
+  onClose,
+  relatedDocuments = [],
+  onInspectRelated
+}: DocumentPanelProps) {
+  const hasValidUrl = isValidUrl(document.url);
 
   return (
     <section className="document-panel" aria-label="Research document details">
@@ -37,10 +52,33 @@ export function DocumentPanel({ document, discovered, onClose }: DocumentPanelPr
         ))}
       </div>
 
-      <button className="primary-button" type="button" onClick={openDocument}>
-        Open Document
-      </button>
+      {relatedDocuments.length > 0 && onInspectRelated ? (
+        <div className="related-documents" aria-label="Related documents">
+          <h3>Related</h3>
+          {relatedDocuments.map((relatedDocument) => (
+            <button
+              key={relatedDocument.id}
+              type="button"
+              onClick={() => onInspectRelated(relatedDocument)}
+            >
+              {relatedDocument.title}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {hasValidUrl ? (
+        <a
+          className="primary-button"
+          href={document.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open Document
+        </a>
+      ) : (
+        <p className="missing-link">Link missing - needs update</p>
+      )}
     </section>
   );
 }
-

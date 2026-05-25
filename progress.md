@@ -8,8 +8,11 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 - Ran `npm install` and confirmed `npm run build` succeeds.
 - Verified gameplay with the Playwright web-game client and inspected the screenshot/state output.
 - Verified list view, search, Tech category filter, inspect, Escape close, slash focus, and console cleanliness with a browser check.
+- Replaced the starter placeholder manifest with 42 exact public Google Drive / Google Docs links supplied by Josh.
+- Changed the document open action to a safe external anchor with `target="_blank"` and `rel="noopener noreferrer"`, plus an invalid-link fallback.
+- Confirmed `npm run build` succeeds after the URL update.
+- Verified map inspect flow with the Playwright web-game client and confirmed the rendered Open Document link uses the expected Google Docs URL with safe link attributes.
 
 ## TODO
 
-- Replace placeholder public Drive URLs with exact public document URLs when available.
 - Consider a V2 generator that imports public Drive metadata and rewrites `researchManifest.ts`.

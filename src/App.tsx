@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AtlasSidebar } from "./components/AtlasSidebar";
 import { DocumentPanel } from "./components/DocumentPanel";
-import { GameMap, WORLD_HEIGHT, WORLD_WIDTH } from "./components/GameMap";
+import { GameMap, WORLD_HEIGHT, WORLD_WIDTH, regionZones } from "./components/GameMap";
 import { SearchPanel } from "./components/SearchPanel";
 import { researchManifest } from "./data/researchManifest";
 import type { PlayerPosition, ResearchCategory, ResearchDocument, ViewMode } from "./types";
@@ -51,9 +51,9 @@ function documentMatchesQuery(document: ResearchDocument, query: string) {
     document.title,
     document.category,
     document.region,
-    document.summary,
+    document.summary || "",
     document.type,
-    ...document.tags
+    ...(document.tags ?? [])
   ]
     .join(" ")
     .toLowerCase();
@@ -109,9 +109,25 @@ export default function App() {
     setDiscoveredIds((current) => {
       const next = new Set(current);
       next.add(documentId);
-      window.localStorage.setItem(DISCOVERED_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      try {
+        window.localStorage.setItem(DISCOVERED_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch {
+        // localStorage unavailable or blocked
+      }
       return next;
     });
+  }, []);
+
+  const resetDiscovered = useCallback(() => {
+    if (window.confirm("Reset discovery progress? This will clear your discovered markers.")) {
+      try {
+        window.localStorage.removeItem(DISCOVERED_STORAGE_KEY);
+      } catch {
+        // ignore localStorage errors
+      }
+      setDiscoveredIds(new Set());
+      setSelectedDocument(null);
+    }
   }, []);
 
   const inspectDocument = useCallback(
@@ -274,6 +290,32 @@ export default function App() {
     touchVectorRef.current = { x: 0, y: 0 };
   };
 
+  const relatedDocuments = useMemo(() => {
+    if (!selectedDocument) return [];
+
+    const sameRegion = researchManifest.filter(
+      (document) => document.id !== selectedDocument.id && document.region === selectedDocument.region
+    );
+
+    const sameTag = researchManifest.filter(
+      (document) =>
+        document.id !== selectedDocument.id &&
+        (document.tags ?? []).some((tag) => (selectedDocument.tags ?? []).includes(tag))
+    );
+
+    const combined = [...sameRegion, ...sameTag];
+    const unique = Array.from(new Map(combined.map((document) => [document.id, document])).values());
+
+    return unique.slice(0, 4);
+  }, [selectedDocument]);
+
+  const currentRegion = useMemo(() => {
+    const zone = regionZones.find(
+      (zone) => player.x >= zone.x && player.x <= zone.x + zone.width && player.y >= zone.y && player.y <= zone.y + zone.height
+    );
+    return zone?.region ?? "Wilderness";
+  }, [player]);
+
   const listDocuments = filteredDocuments.map((document) => {
     const discovered = discoveredIds.has(document.id);
     return (
@@ -306,6 +348,8 @@ export default function App() {
             discoveredCount={discoveredIds.size}
             totalCount={researchManifest.length}
             regionInfo={regionInfo}
+            currentRegion={currentRegion}
+            onResetProgress={resetDiscovered}
           />
           <SearchPanel
             query={query}
@@ -394,6 +438,8 @@ export default function App() {
           document={selectedDocument}
           discovered={discoveredIds.has(selectedDocument.id)}
           onClose={() => setSelectedDocument(null)}
+          relatedDocuments={relatedDocuments}
+          onInspectRelated={inspectDocument}
         />
       )}
     </main>

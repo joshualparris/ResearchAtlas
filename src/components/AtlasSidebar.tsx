@@ -10,9 +10,19 @@ type AtlasSidebarProps = {
   discoveredCount: number;
   totalCount: number;
   regionInfo: RegionInfo[];
+  currentRegion: string;
+  onResetProgress: () => void;
 };
 
-export function AtlasSidebar({ discoveredCount, totalCount, regionInfo }: AtlasSidebarProps) {
+export function AtlasSidebar({
+  discoveredCount,
+  totalCount,
+  regionInfo,
+  currentRegion,
+  onResetProgress
+}: AtlasSidebarProps) {
+  const progressPercent = totalCount > 0 ? Math.round((discoveredCount / totalCount) * 100) : 0;
+
   return (
     <aside className="atlas-sidebar" aria-label="Research Atlas status">
       <div className="atlas-sidebar__title">
@@ -28,7 +38,13 @@ export function AtlasSidebar({ discoveredCount, totalCount, regionInfo }: AtlasS
           <span> documents discovered</span>
         </div>
         <div className="progress-card__bar">
-          <span style={{ width: `${Math.round((discoveredCount / totalCount) * 100)}%` }} />
+          <span style={{ width: `${progressPercent}%` }} />
+        </div>
+        <div className="progress-card__footer">
+          <span>Current region: {currentRegion}</span>
+          <button type="button" onClick={onResetProgress}>
+            Reset
+          </button>
         </div>
       </div>
 
@@ -46,4 +62,3 @@ export function AtlasSidebar({ discoveredCount, totalCount, regionInfo }: AtlasS
     </aside>
   );
 }
-

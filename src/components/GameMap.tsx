@@ -15,7 +15,7 @@ type RegionZone = {
   height: number;
 };
 
-const regionZones: RegionZone[] = [
+export const regionZones: RegionZone[] = [
   { category: "Health", region: "Health Highlands", x: 60, y: 70, width: 500, height: 360 },
   { category: "Mind", region: "Mind Forest", x: 590, y: 70, width: 500, height: 360 },
   { category: "Tech", region: "Tech Citadel", x: 1120, y: 70, width: 520, height: 390 },
@@ -118,4 +118,3 @@ export function GameMap({
     </section>
   );
 }
-
