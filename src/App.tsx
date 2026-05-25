@@ -29,6 +29,11 @@ const THEME_STORAGE_KEY = "research-atlas.theme.v1";
 const SETTINGS_STORAGE_KEY = "research-atlas.settings.v1";
 const GEMS_STORAGE_KEY = "research-atlas.gems.v1";
 const QUEST_STORAGE_KEY = "research-atlas.quest.v1";
+const SIDEBAR_WIDTH_KEY = "research-atlas.sidebar-width.v1";
+const READER_WIDTH_KEY = "research-atlas.reader-width.v1";
+const PANEL_WIDTH_KEY = "research-atlas.panel-width.v1";
+const READER_HEIGHT_KEY = "research-atlas.reader-height.v1";
+const COMPASS_STORAGE_KEY = "research-atlas.compass.v1";
 const REVIEW_DUE_DAYS = 7;
 const PLAYER_SPEED = 265;
 const INSPECT_DISTANCE = 105;
@@ -219,6 +224,46 @@ export default function App() {
   const [shrineDiscovery, setShrineDiscovery] = useState<ResearchDocument | null>(null);
   const [isTeleportMenuOpen, setIsTeleportMenuOpen] = useState(false);
   const [isMinimapOpen, setIsMinimapOpen] = useState(true);
+  const [isCompassOpen, setIsCompassOpen] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(COMPASS_STORAGE_KEY);
+      return saved === null ? true : saved === "true";
+    } catch {
+      return true;
+    }
+  });
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
+      return saved ? parseInt(saved, 10) : 340;
+    } catch {
+      return 340;
+    }
+  });
+  const [readerWidth, setReaderWidth] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(READER_WIDTH_KEY);
+      return saved ? parseInt(saved, 10) : 600;
+    } catch {
+      return 600;
+    }
+  });
+  const [panelWidth, setPanelWidth] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(PANEL_WIDTH_KEY);
+      return saved ? parseInt(saved, 10) : 460;
+    } catch {
+      return 460;
+    }
+  });
+  const [readerHeight, setReaderHeight] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(READER_HEIGHT_KEY);
+      return saved ? parseInt(saved, 10) : 500;
+    } catch {
+      return 500;
+    }
+  });
   const [trackingDocumentId, setTrackingDocumentId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadThemeMode());
@@ -564,6 +609,18 @@ export default function App() {
       if (key === "m" && !isTypingTarget(event.target)) {
         event.preventDefault();
         setIsMinimapOpen((prev) => !prev);
+        return;
+      }
+
+      if (key === "c" && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        setIsCompassOpen((prev) => {
+          const next = !prev;
+          try {
+            window.localStorage.setItem(COMPASS_STORAGE_KEY, String(next));
+          } catch { /* ignore */ }
+          return next;
+        });
         return;
       }
 
@@ -971,12 +1028,36 @@ export default function App() {
     );
   });
 
+  const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
+    const startWidth = sidebarWidth;
+    const startX = mouseDownEvent.clientX;
+
+    const onMouseMove = (mouseMoveEvent: MouseEvent) => {
+      const delta = mouseMoveEvent.clientX - startX;
+      const nextWidth = Math.min(Math.max(280, startWidth + delta), 600);
+      setSidebarWidth(nextWidth);
+      try {
+        window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(nextWidth));
+      } catch { /* ignore */ }
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, [sidebarWidth]);
+
   const isFocusActive = focusMode && selectedDocument !== null;
 
   return (
     <main className={isFocusActive ? "app-shell app-shell--focus" : "app-shell"}>
       {!isFocusActive && (
-        <div className="app-layout">
+        <div className="app-layout" style={{ gridTemplateColumns: `${sidebarWidth}px 4px 1fr` }}>
           <div className="side-column">
             <AtlasSidebar
               discoveredCount={discoveredIds.size}
@@ -1029,39 +1110,54 @@ export default function App() {
             />
           </div>
 
+          <div className="resize-handle" onMouseDown={startResizing} />
+
           <div className="content-column">
             {viewMode === "map" ? (
               <div className="map-container-relative">
-                  <GameMap
-                    documents={filteredDocuments}
-                    player={player}
-                    nearestDocumentId={nearestDocument?.id ?? null}
-                    nearestGateId={nearestGate?.id ?? null}
-                    nearestShrineId={nearestShrine?.id ?? null}
-                    discoveredIds={discoveredIds}
-                    onInspectDocument={inspectDocument}
-                    onInspectShrine={(id) => setSelectedShrineId(id)}
-                    zoom={zoom}
-                    onZoomChange={setZoom}
-                    trackingDocument={researchManifest.find(d => d.id === trackingDocumentId) ?? null}
-                    touchControlMode={readerSettings.touchControlMode}
-                  />
+                <GameMap
+                  documents={filteredDocuments}
+                  player={player}
+                  nearestDocumentId={nearestDocument?.id ?? null}
+                  nearestGateId={nearestGate?.id ?? null}
+                  nearestShrineId={nearestShrine?.id ?? null}
+                  discoveredIds={discoveredIds}
+                  onInspectDocument={inspectDocument}
+                  onInspectShrine={(id) => setSelectedShrineId(id)}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  trackingDocument={researchManifest.find(d => d.id === trackingDocumentId) ?? null}
+                  touchControlMode={readerSettings.touchControlMode}
+                />
 
-                  <div className="map-controls">
-                    <button onClick={() => setIsSettingsOpen(true)} title="Settings (,)">⚙</button>
-                    <button onClick={() => setZoom(prev => clamp(prev + 0.1, 0.5, 2.0))} title="Zoom In">+</button>
-                    <button onClick={() => setZoom(prev => clamp(prev - 0.1, 0.5, 2.0))} title="Zoom Out">-</button>
-                    <button onClick={() => setZoom(1.0)} title="Reset Zoom">1:1</button>
-                    <button
-                      onClick={() => {
-                        // We'd need viewport here, but for now just fit to a reasonable wide view
-                        setZoom(0.5);
-                      }}
-                      title="Fit World"
-                    >
-                      Fit
-                    </button>
-                  </div>
+                <div className="map-controls">
+                  <button onClick={() => setIsSettingsOpen(true)} title="Settings (,)">⚙</button>
+                  <button onClick={() => setZoom(prev => clamp(prev + 0.1, 0.5, 2.0))} title="Zoom In">+</button>
+                   <button onClick={() => setZoom(prev => clamp(prev - 0.1, 0.5, 2.0))} title="Zoom Out">-</button>
+                   <button onClick={() => setZoom(1.0)} title="Reset Zoom">1:1</button>
+                  <button
+                    onClick={() => {
+                      // We'd need viewport here, but for now just fit to a reasonable wide view
+                      setZoom(0.5);
+                    }}
+                    title="Fit World"
+                  >
+                    Fit
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsCompassOpen(prev => {
+                        const next = !prev;
+                        try { window.localStorage.setItem(COMPASS_STORAGE_KEY, String(next)); } catch {}
+                        return next;
+                      });
+                    }} 
+                    title="Toggle Compass (C)"
+                    className={isCompassOpen ? "is-active" : ""}
+                  >
+                    🧭
+                  </button>
+                </div>
 
                 <div className="map-overlays">
                   <Minimap
@@ -1070,18 +1166,18 @@ export default function App() {
                     onToggle={() => setIsMinimapOpen(!isMinimapOpen)}
                     onTeleport={(gate) => teleportTo(gate.destinationX, gate.destinationY, gate.name)}
                   />
-                  <Compass
-                    player={player}
-                    target={nextUndiscovered ?? null}
-                    isTracking={!!trackingDocumentId}
-                    onTrack={(id) => setTrackingDocumentId(id)}
-                  />
+                  {isCompassOpen && (
+                    <Compass
+                      player={player}
+                      target={nextUndiscovered ?? null}
+                      isTracking={!!trackingDocumentId}
+                      onTrack={(id) => setTrackingDocumentId(id)}
+                    />
+                  )}
                 </div>
               </div>
             ) : (
-              <section className="list-view" aria-label="Research document list">
-                {listDocuments.length > 0 ? listDocuments : <p className="empty-state">No documents match the current search.</p>}
-              </section>
+              <div className="list-view">{listDocuments}</div>
             )}
           </div>
         </div>
@@ -1145,6 +1241,11 @@ export default function App() {
         onUpdate={updateReaderSettings}
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        isCompassOpen={isCompassOpen}
+        onToggleCompass={(open) => {
+          setIsCompassOpen(open);
+          try { window.localStorage.setItem(COMPASS_STORAGE_KEY, String(open)); } catch {}
+        }}
       />
 
       {selectedDocument && (
@@ -1162,6 +1263,16 @@ export default function App() {
           isFavourite={bookmarkIds.has(selectedDocument.id)}
           isRevisit={revisitIds.has(selectedDocument.id)}
           isRead={discoveredIds.has(selectedDocument.id)}
+          width={readerWidth}
+          height={readerHeight}
+          onResizeWidth={(w) => {
+            setReaderWidth(w);
+            try { window.localStorage.setItem(READER_WIDTH_KEY, String(w)); } catch {}
+          }}
+          onResizeHeight={(h) => {
+            setReaderHeight(h);
+            try { window.localStorage.setItem(READER_HEIGHT_KEY, String(h)); } catch {}
+          }}
         />
       )}
 
@@ -1179,6 +1290,11 @@ export default function App() {
           relatedDocuments={relatedDocuments}
           onInspectRelated={inspectDocument}
           onAddGem={addGem}
+          width={panelWidth}
+          onResizeWidth={(w) => {
+            setPanelWidth(w);
+            try { window.localStorage.setItem(PANEL_WIDTH_KEY, String(w)); } catch {}
+          }}
         />
       )}
 

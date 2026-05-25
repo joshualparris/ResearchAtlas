@@ -14,6 +14,8 @@ type DocumentPanelProps = {
   relatedDocuments?: ResearchDocument[];
   onInspectRelated?: (document: ResearchDocument) => void;
   onAddGem?: (gem: Omit<ResearchGem, "id" | "createdAt" | "nextReviewAt" | "interval" | "ease">) => void;
+  width: number;
+  onResizeWidth: (width: number) => void;
 };
 
 const NOTE_STORAGE_PREFIX = "research-atlas.document-note.v1:";
@@ -56,7 +58,9 @@ export function DocumentPanel({
   onToggleFocusMode,
   relatedDocuments = [],
   onInspectRelated,
-  onAddGem
+  onAddGem,
+  width,
+  onResizeWidth
 }: DocumentPanelProps) {
   const [note, setNote] = useState("");
   const [isReading, setIsReading] = useState(false);
@@ -64,6 +68,24 @@ export function DocumentPanel({
   const [gemType, setGemType] = useState<ResearchGem["type"]>("insight");
   const [copyFeedback, setCopyFeedback] = useState(false);
   const hasValidUrl = isValidUrl(document.url);
+
+  const startResizing = (mouseDownEvent: React.MouseEvent) => {
+    const startWidth = width;
+    const startX = mouseDownEvent.clientX;
+
+    const onMouseMove = (mouseMoveEvent: MouseEvent) => {
+      const delta = startX - mouseMoveEvent.clientX;
+      onResizeWidth(Math.min(Math.max(300, startWidth + delta), window.innerWidth - 100));
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
 
   const firstSentence = document.summary.split(/(?<=[.!?])\s+/)[0] || document.summary;
   const learningObjective =
@@ -131,7 +153,8 @@ export function DocumentPanel({
   const readingTime = document.readingTimeEstimate || "5-10 min";
 
   return (
-    <section className="document-panel" aria-label="Research document details">
+    <section className="document-panel" aria-label="Research document details" style={{ width }}>
+      <div className="reader-resize-handle reader-resize-handle--right-drawer" onMouseDown={startResizing} />
       <div className="document-panel__header">
         <div>
           <p className="eyebrow">{document.region}</p>

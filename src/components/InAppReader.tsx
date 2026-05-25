@@ -16,6 +16,10 @@ type InAppReaderProps = {
   isFavourite: boolean;
   isRevisit: boolean;
   isRead: boolean;
+  width: number;
+  height: number;
+  onResizeWidth: (width: number) => void;
+  onResizeHeight: (height: number) => void;
 };
 
 export function InAppReader({
@@ -31,11 +35,42 @@ export function InAppReader({
   relatedDocuments,
   isFavourite,
   isRevisit,
-  isRead
+  isRead,
+  width,
+  height,
+  onResizeWidth,
+  onResizeHeight
 }: InAppReaderProps) {
   const [activeTab, setActiveTab] = useState<ReaderTab>(readerSettings.defaultReaderTab);
   const [gemContent, setGemContent] = useState("");
   const [gemType, setGemType] = useState<ResearchGem["type"]>("insight");
+
+  const startResizing = (mouseDownEvent: React.MouseEvent) => {
+    const startSize = readerSettings.documentOpenMode === "right-drawer" ? width : height;
+    const startX = mouseDownEvent.clientX;
+    const startY = mouseDownEvent.clientY;
+
+    const onMouseMove = (mouseMoveEvent: MouseEvent) => {
+      if (readerSettings.documentOpenMode === "right-drawer") {
+        const delta = startX - mouseMoveEvent.clientX;
+        onResizeWidth(Math.min(Math.max(300, startSize + delta), window.innerWidth - 100));
+      } else if (readerSettings.documentOpenMode === "bottom-drawer") {
+        const delta = startY - mouseMoveEvent.clientY;
+        onResizeHeight(Math.min(Math.max(200, startSize + delta), window.innerHeight - 100));
+      } else if (readerSettings.documentOpenMode === "top-drawer") {
+        const delta = mouseMoveEvent.clientY - startY;
+        onResizeHeight(Math.min(Math.max(200, startSize + delta), window.innerHeight - 100));
+      }
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
 
   useEffect(() => {
     setActiveTab(readerSettings.defaultReaderTab);
@@ -220,8 +255,21 @@ export function InAppReader({
     );
   };
 
+  const style: React.CSSProperties = {};
+  if (readerSettings.documentOpenMode === "right-drawer") {
+    style.width = width;
+  } else if (readerSettings.documentOpenMode === "bottom-drawer" || readerSettings.documentOpenMode === "top-drawer") {
+    style.height = height;
+  }
+
   return (
-    <div className={`in-app-reader reader-mode-${readerSettings.documentOpenMode} theme-${readerSettings.readerTheme} width-${readerSettings.readerWidth} font-${readerSettings.fontSize}`}>
+    <div 
+      className={`in-app-reader reader-mode-${readerSettings.documentOpenMode} theme-${readerSettings.readerTheme} width-${readerSettings.readerWidth} font-${readerSettings.fontSize}`}
+      style={style}
+    >
+      {readerSettings.documentOpenMode !== "fullscreen" && readerSettings.documentOpenMode !== "external" && (
+        <div className={`reader-resize-handle reader-resize-handle--${readerSettings.documentOpenMode}`} onMouseDown={startResizing} />
+      )}
       <div className="reader-shell">
         <header className="reader-header">
           <div className="reader-header-left">

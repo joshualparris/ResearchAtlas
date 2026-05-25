@@ -5,9 +5,11 @@ type SettingsPanelProps = {
   onUpdate: (updates: Partial<ReaderSettings>) => void;
   isOpen: boolean;
   onClose: () => void;
+  isCompassOpen: boolean;
+  onToggleCompass: (open: boolean) => void;
 };
 
-export function SettingsPanel({ settings, onUpdate, isOpen, onClose }: SettingsPanelProps) {
+export function SettingsPanel({ settings, onUpdate, isOpen, onClose, isCompassOpen, onToggleCompass }: SettingsPanelProps) {
   if (!isOpen) return null;
 
   return (
@@ -83,6 +85,22 @@ export function SettingsPanel({ settings, onUpdate, isOpen, onClose }: SettingsP
                 onChange={e => onUpdate({ autoMarkAsOpened: e.target.checked })}
               />
               Auto-mark documents as read
+            </label>
+            <label>
+              <input 
+                type="checkbox" 
+                checked={settings.showReaderOnDocumentClick}
+                onChange={e => onUpdate({ showReaderOnDocumentClick: e.target.checked })}
+              />
+              Show reader on document click
+            </label>
+            <label>
+              <input 
+                type="checkbox" 
+                checked={isCompassOpen}
+                onChange={e => onToggleCompass(e.target.checked)}
+              />
+              Show Nearest Undiscovered Compass (C)
             </label>
           </section>
         </div>
