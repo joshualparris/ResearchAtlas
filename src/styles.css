@@ -603,10 +603,13 @@ button {
 .document-panel {
   position: fixed;
   z-index: 10;
+  top: 22px;
   right: 22px;
   bottom: 22px;
   width: min(460px, calc(100vw - 44px));
   padding: 18px;
+  max-height: calc(100vh - 44px);
+  overflow: auto;
 }
 
 .app-shell--focus {
@@ -920,9 +923,11 @@ button {
   }
 
   .document-panel {
+    top: 10px;
     right: 10px;
     bottom: 10px;
     width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
   }
 
   .document-panel__goal {
