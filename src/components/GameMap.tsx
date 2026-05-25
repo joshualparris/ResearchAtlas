@@ -3,8 +3,8 @@ import type { PlayerPosition, ResearchDocument, ResearchCategory } from "../type
 import { DocumentObject } from "./DocumentObject";
 import { Player } from "./Player";
 
-export const WORLD_WIDTH = 1800;
-export const WORLD_HEIGHT = 1200;
+export const WORLD_WIDTH = 2200;
+export const WORLD_HEIGHT = 2400;
 
 type RegionZone = {
   category: ResearchCategory;
@@ -22,7 +22,15 @@ export const regionZones: RegionZone[] = [
   { category: "Family", region: "Family Grove", x: 90, y: 510, width: 500, height: 350 },
   { category: "Faith", region: "Faith Chapel", x: 630, y: 500, width: 500, height: 370 },
   { category: "Life", region: "Life Observatory", x: 1160, y: 510, width: 530, height: 370 },
-  { category: "Archive", region: "Archive Caverns", x: 380, y: 900, width: 1030, height: 240 }
+  { category: "Archive", region: "Archive Caverns", x: 380, y: 900, width: 1030, height: 240 },
+  { category: "Health", region: "Body Systems Lab", x: 60, y: 1200, width: 1050, height: 300 },
+  { category: "Mind", region: "ADHD Focus Grove", x: 60, y: 1530, width: 1050, height: 150 },
+  { category: "Family", region: "Parenting Haven", x: 60, y: 1710, width: 1050, height: 180 },
+  { category: "Family", region: "Marriage & Connection Garden", x: 60, y: 1920, width: 1050, height: 180 },
+  { category: "Tech", region: "Tech & AI Citadel Expansion", x: 1150, y: 1200, width: 600, height: 300 },
+  { category: "Life", region: "Life Analytics Observatory", x: 1150, y: 1530, width: 600, height: 300 },
+  { category: "Life", region: "Work & Vocation Guildhall", x: 1150, y: 1920, width: 950, height: 180 },
+  { category: "Life", region: "Places & Calling Map", x: 60, y: 2130, width: 1350, height: 200 }
 ];
 
 type GameMapProps = {

@@ -84,11 +84,19 @@ type RecentView = {
 
 const regionInfo: Array<{ category: ResearchCategory; region: string; description: string }> = [
   { category: "Health", region: "Health Highlands", description: "Sleep, movement, body systems, and recovery." },
+  { category: "Health", region: "Body Systems Lab", description: "Practical body, pain, movement, and environment research." },
   { category: "Mind", region: "Mind Forest", description: "Attention, emotion, reflection, and patterns." },
+  { category: "Mind", region: "ADHD Focus Grove", description: "Attention, screens, neurodiversity, and self-understanding." },
   { category: "Family", region: "Family Grove", description: "Marriage, parenting, home life, and memory." },
+  { category: "Family", region: "Parenting Haven", description: "Home support, meltdowns, education and family rhythms." },
+  { category: "Family", region: "Marriage & Connection Garden", description: "Emotional intimacy, Christian marriage, and restoration." },
   { category: "Faith", region: "Faith Chapel", description: "Christian formation, vocation, prayer, and wisdom." },
   { category: "Tech", region: "Tech Citadel", description: "AI, ICT, app building, security, and career." },
+  { category: "Tech", region: "Tech & AI Citadel Expansion", description: "AI security, game building, and systems thinking." },
   { category: "Life", region: "Life Observatory", description: "Timelines, goals, personal data, and meta-analysis." },
+  { category: "Life", region: "Life Analytics Observatory", description: "Whole-life synthesis and future planning." },
+  { category: "Life", region: "Places & Calling Map", description: "Place-based research, community, and calling." },
+  { category: "Life", region: "Work & Vocation Guildhall", description: "Career pathways, operational fit, and future work." },
   { category: "Archive", region: "Archive Caverns", description: "Older exports, reports, and unsorted research." }
 ];
 

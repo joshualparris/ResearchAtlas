@@ -24,6 +24,9 @@ Original prompt: Build and push a public Vite/React/TypeScript app called Resear
 - Added **Reflective Integration Questions**: Randomized prompts in the document panel to encourage active synthesis of research.
 - Performed a **Systematic SWOT Audit** comparing Research Atlas and Research Gems to align with memory-science principles.
 - Refined **Focus Mode** with a distraction-free, centered reading UI optimized for deep attention.
+- Expanded the **Research Manifest** with a second wave of 40+ deep research documents across 8 new regions.
+- Enlarged the **World Map** bounds to 2200x2400 to accommodate the new research modules.
+- Updated the **Region Legend** and sidebar travel options to support the expanded atlas geography.
 
 ## TODO
 
