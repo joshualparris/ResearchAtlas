@@ -145,6 +145,68 @@ button {
   font-weight: 800;
 }
 
+.sidebar-checkin,
+.sidebar-suggestions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f4edcf;
+}
+
+.sidebar-checkin strong,
+.suggestion-card strong {
+  color: #17373a;
+  font-size: 0.9rem;
+}
+
+.sidebar-checkin p,
+.suggestion-card p {
+  margin: 0;
+  color: #516064;
+  font-size: 0.78rem;
+}
+
+.sidebar-checkin textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid rgba(30, 43, 45, 0.22);
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: #1e2b2d;
+  background: #fffaf0;
+}
+
+.sidebar-checkin button {
+  min-height: 36px;
+  border: 1px solid rgba(30, 43, 45, 0.22);
+  border-radius: 7px;
+  color: #fffaf0;
+  background: #17373a;
+  font-weight: 800;
+}
+
+.suggestion-card {
+  border: 1px solid rgba(30, 43, 45, 0.14);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 250, 240, 0.62);
+}
+
+.suggestion-card + .suggestion-card {
+  margin-top: 8px;
+}
+
+.suggestion-card ul {
+  display: grid;
+  gap: 5px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #37484c;
+  font-size: 0.78rem;
+}
+
 .region-legend {
   display: grid;
   gap: 8px;
@@ -476,10 +538,30 @@ button {
   padding: 18px;
 }
 
+.app-shell--focus {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.app-shell--focus .document-panel {
+  position: static;
+  width: min(760px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+}
+
 .document-panel__header {
   display: flex;
   gap: 12px;
   justify-content: space-between;
+}
+
+.document-panel__header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  align-items: start;
 }
 
 .document-panel h2,
@@ -495,6 +577,17 @@ button {
   height: 36px;
   flex: 0 0 auto;
   font-weight: 900;
+}
+
+.secondary-button {
+  min-height: 36px;
+  border: 1px solid rgba(30, 43, 45, 0.22);
+  border-radius: 7px;
+  padding: 6px 10px;
+  color: #17373a;
+  background: #fffaf0;
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .document-panel__meta {

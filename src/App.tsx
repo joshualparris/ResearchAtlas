@@ -424,7 +424,7 @@ export default function App() {
   const isFocusActive = focusMode && selectedDocument !== null;
 
   return (
-    <main className="app-shell">
+    <main className={isFocusActive ? "app-shell app-shell--focus" : "app-shell"}>
       {!isFocusActive && (
         <div className="app-layout">
           <div className="side-column">
@@ -478,7 +478,7 @@ export default function App() {
       </div>
       )}
 
-      {viewMode === "map" && (
+      {!isFocusActive && viewMode === "map" && (
         <div className="touch-controls" aria-label="Touch movement controls">
           <button
             type="button"
@@ -537,7 +537,7 @@ export default function App() {
           discovered={discoveredIds.has(selectedDocument.id)}
           focusMode={focusMode}
           onToggleFocusMode={() => setFocusMode((current) => !current)}
-          onClose={() => setSelectedDocument(null)}
+          onClose={closeDocument}
           relatedDocuments={relatedDocuments}
           onInspectRelated={inspectDocument}
         />
