@@ -23,6 +23,8 @@ type BookmarkInfo = {
   title: string;
 };
 
+type ThemeMode = "light" | "dark";
+
 type AtlasSidebarProps = {
   discoveredCount: number;
   totalCount: number;
@@ -32,6 +34,8 @@ type AtlasSidebarProps = {
   currentRegion: string;
   onJumpToRegion: (region: string) => void;
   onResetProgress: () => void;
+  themeMode: ThemeMode;
+  onThemeToggle: () => void;
   checkIn: string;
   onCheckInChange: (value: string) => void;
   onCheckInSave: () => void;
@@ -50,6 +54,8 @@ export function AtlasSidebar({
   currentRegion,
   onJumpToRegion,
   onResetProgress,
+  themeMode,
+  onThemeToggle,
   checkIn,
   onCheckInChange,
   onCheckInSave,
@@ -61,8 +67,13 @@ export function AtlasSidebar({
   return (
     <aside className="atlas-sidebar" aria-label="Research Atlas status">
       <div className="atlas-sidebar__title">
-        <p className="eyebrow">Public Library</p>
-        <h1>Research Atlas</h1>
+        <div>
+          <p className="eyebrow">Public Library</p>
+          <h1>Research Atlas</h1>
+        </div>
+        <button className="theme-toggle-button" type="button" onClick={onThemeToggle}>
+          {themeMode === "dark" ? "Light mode" : "Dark mode"}
+        </button>
       </div>
 
       <div className="progress-card" aria-label="Discovery progress">

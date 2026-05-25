@@ -59,4 +59,6 @@ These features are aligned with the current app direction and can be added itera
 - extend the manifest with more learning-oriented documents and summaries
 - add a notes/journal feature for each research item
 - build a dedicated review dashboard for spaced repetition and progress tracking
+- integrate spaced-repetition logic from **Research Gems** to support active recall
 - continue documenting design thinking in `docs/learning-enhancements.md`
+- See [comparison-notes.md](file:///c:/Users/joshua.parris/ResearchAtlas/docs/comparison-notes.md) for a detailed SWOT analysis and cognitive science evaluation.

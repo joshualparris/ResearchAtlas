@@ -18,10 +18,25 @@ const DISCOVERED_STORAGE_KEY = "research-atlas.discovered.v1";
 const BOOKMARK_STORAGE_KEY = "research-atlas.bookmarks.v1";
 const RECENT_VIEWS_STORAGE_KEY = "research-atlas.recent-views.v1";
 const CHECKIN_STORAGE_KEY = "research-atlas.checkin.v1";
+const THEME_STORAGE_KEY = "research-atlas.theme.v1";
 const REVIEW_DUE_DAYS = 7;
 const PLAYER_SPEED = 265;
 const INSPECT_DISTANCE = 105;
 const STARTING_POSITION: PlayerPosition = { x: 900, y: 600 };
+
+type ThemeMode = "light" | "dark";
+
+function loadThemeMode() {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "dark" || stored === "light") {
+      return stored as ThemeMode;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  } catch {
+    return "light" as ThemeMode;
+  }
+}
 
 type RecentView = {
   id: string;
@@ -119,6 +134,7 @@ export default function App() {
   const [player, setPlayer] = useState<PlayerPosition>(STARTING_POSITION);
   const [selectedDocument, setSelectedDocument] = useState<ResearchDocument | null>(null);
   const [focusMode, setFocusMode] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadThemeMode());
   const [discoveredIds, setDiscoveredIds] = useState<Set<string>>(() => loadDiscoveredIds());
   const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(() => loadBookmarkIds());
   const [recentViews, setRecentViews] = useState<RecentView[]>(() => loadRecentViews());
@@ -372,6 +388,19 @@ export default function App() {
     touchVectorRef.current = { x: 0, y: 0 };
   };
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+    } catch {
+      // ignore localStorage errors
+    }
+    document.documentElement.classList.toggle("dark", themeMode === "dark");
+  }, [themeMode]);
+
+  const toggleThemeMode = () => {
+    setThemeMode((current) => (current === "dark" ? "light" : "dark"));
+  };
+
   const jumpToRegion = (region: string) => {
     const zone = regionZones.find((item) => item.region === region);
     if (!zone) return;
@@ -537,6 +566,8 @@ export default function App() {
               currentRegion={currentRegion}
               onJumpToRegion={jumpToRegion}
               onResetProgress={resetDiscovered}
+              themeMode={themeMode}
+              onThemeToggle={toggleThemeMode}
               checkIn={checkIn}
               onCheckInChange={setCheckIn}
               onCheckInSave={() => saveCheckIn(checkIn)}
