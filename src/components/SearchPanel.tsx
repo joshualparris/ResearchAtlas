@@ -1,5 +1,5 @@
 import type { ResearchCategory, ViewMode } from "../types";
-import { categories } from "../data/researchManifest";
+import { researchCategories } from "../data/researchManifest";
 
 type SearchPanelProps = {
   query: string;
@@ -60,7 +60,7 @@ export function SearchPanel({
         >
           All
         </button>
-        {categories.map((category) => (
+        {researchCategories.map((category) => (
           <button
             key={category}
             type="button"
